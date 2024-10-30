@@ -23,123 +23,133 @@ const MessageSchema = CollectionSchema(
       type: IsarType.object,
       target: r'CashuInfoModel',
     ),
-    r'content': PropertySchema(
+    r'confirmResult': PropertySchema(
       id: 1,
+      name: r'confirmResult',
+      type: IsarType.string,
+    ),
+    r'content': PropertySchema(
+      id: 2,
       name: r'content',
       type: IsarType.string,
     ),
     r'createdAt': PropertySchema(
-      id: 2,
+      id: 3,
       name: r'createdAt',
       type: IsarType.dateTime,
     ),
     r'encryptType': PropertySchema(
-      id: 3,
+      id: 4,
       name: r'encryptType',
       type: IsarType.int,
       enumMap: _MessageencryptTypeEnumValueMap,
     ),
     r'eventIds': PropertySchema(
-      id: 4,
+      id: 5,
       name: r'eventIds',
       type: IsarType.stringList,
     ),
     r'from': PropertySchema(
-      id: 5,
+      id: 6,
       name: r'from',
       type: IsarType.string,
     ),
     r'hashCode': PropertySchema(
-      id: 6,
+      id: 7,
       name: r'hashCode',
       type: IsarType.long,
     ),
     r'idPubkey': PropertySchema(
-      id: 7,
+      id: 8,
       name: r'idPubkey',
       type: IsarType.string,
     ),
     r'identityId': PropertySchema(
-      id: 8,
+      id: 9,
       name: r'identityId',
       type: IsarType.long,
     ),
     r'isMeSend': PropertySchema(
-      id: 9,
+      id: 10,
       name: r'isMeSend',
       type: IsarType.bool,
     ),
     r'isRead': PropertySchema(
-      id: 10,
+      id: 11,
       name: r'isRead',
       type: IsarType.bool,
     ),
     r'isSystem': PropertySchema(
-      id: 11,
+      id: 12,
       name: r'isSystem',
       type: IsarType.bool,
     ),
     r'mediaType': PropertySchema(
-      id: 12,
+      id: 13,
       name: r'mediaType',
       type: IsarType.int,
       enumMap: _MessagemediaTypeEnumValueMap,
     ),
     r'msgKeyHash': PropertySchema(
-      id: 13,
+      id: 14,
       name: r'msgKeyHash',
       type: IsarType.string,
     ),
     r'msgid': PropertySchema(
-      id: 14,
+      id: 15,
       name: r'msgid',
       type: IsarType.string,
     ),
+    r'rawEvents': PropertySchema(
+      id: 16,
+      name: r'rawEvents',
+      type: IsarType.stringList,
+    ),
     r'realMessage': PropertySchema(
-      id: 15,
+      id: 17,
       name: r'realMessage',
       type: IsarType.string,
     ),
     r'receiveAt': PropertySchema(
-      id: 16,
+      id: 18,
       name: r'receiveAt',
       type: IsarType.dateTime,
     ),
     r'reply': PropertySchema(
-      id: 17,
+      id: 19,
       name: r'reply',
       type: IsarType.object,
       target: r'MsgReply',
     ),
     r'requestConfrim': PropertySchema(
-      id: 18,
+      id: 20,
       name: r'requestConfrim',
       type: IsarType.int,
       enumMap: _MessagerequestConfrimEnumValueMap,
     ),
     r'roomId': PropertySchema(
-      id: 19,
+      id: 21,
       name: r'roomId',
       type: IsarType.long,
     ),
     r'sent': PropertySchema(
-      id: 20,
+      id: 22,
       name: r'sent',
       type: IsarType.int,
       enumMap: _MessagesentEnumValueMap,
     ),
     r'stringify': PropertySchema(
-      id: 21,
+      id: 23,
       name: r'stringify',
       type: IsarType.bool,
     ),
     r'subEvent': PropertySchema(
-      id: 22,
+      id: 24,
       name: r'subEvent',
       type: IsarType.string,
     ),
     r'to': PropertySchema(
-      id: 23,
+      id: 25,
       name: r'to',
       type: IsarType.string,
     )
@@ -194,6 +204,12 @@ int _messageEstimateSize(
               value, allOffsets[CashuInfoModel]!, allOffsets);
     }
   }
+  {
+    final value = object.confirmResult;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   bytesCount += 3 + object.content.length * 3;
   bytesCount += 3 + object.eventIds.length * 3;
   {
@@ -211,6 +227,13 @@ int _messageEstimateSize(
     }
   }
   bytesCount += 3 + object.msgid.length * 3;
+  bytesCount += 3 + object.rawEvents.length * 3;
+  {
+    for (var i = 0; i < object.rawEvents.length; i++) {
+      final value = object.rawEvents[i];
+      bytesCount += value.length * 3;
+    }
+  }
   {
     final value = object.realMessage;
     if (value != null) {
@@ -246,34 +269,36 @@ void _messageSerialize(
     CashuInfoModelSchema.serialize,
     object.cashuInfo,
   );
-  writer.writeString(offsets[1], object.content);
-  writer.writeDateTime(offsets[2], object.createdAt);
-  writer.writeInt(offsets[3], object.encryptType.index);
-  writer.writeStringList(offsets[4], object.eventIds);
-  writer.writeString(offsets[5], object.from);
-  writer.writeLong(offsets[6], object.hashCode);
-  writer.writeString(offsets[7], object.idPubkey);
-  writer.writeLong(offsets[8], object.identityId);
-  writer.writeBool(offsets[9], object.isMeSend);
-  writer.writeBool(offsets[10], object.isRead);
-  writer.writeBool(offsets[11], object.isSystem);
-  writer.writeInt(offsets[12], object.mediaType.index);
-  writer.writeString(offsets[13], object.msgKeyHash);
-  writer.writeString(offsets[14], object.msgid);
-  writer.writeString(offsets[15], object.realMessage);
-  writer.writeDateTime(offsets[16], object.receiveAt);
+  writer.writeString(offsets[1], object.confirmResult);
+  writer.writeString(offsets[2], object.content);
+  writer.writeDateTime(offsets[3], object.createdAt);
+  writer.writeInt(offsets[4], object.encryptType.index);
+  writer.writeStringList(offsets[5], object.eventIds);
+  writer.writeString(offsets[6], object.from);
+  writer.writeLong(offsets[7], object.hashCode);
+  writer.writeString(offsets[8], object.idPubkey);
+  writer.writeLong(offsets[9], object.identityId);
+  writer.writeBool(offsets[10], object.isMeSend);
+  writer.writeBool(offsets[11], object.isRead);
+  writer.writeBool(offsets[12], object.isSystem);
+  writer.writeInt(offsets[13], object.mediaType.index);
+  writer.writeString(offsets[14], object.msgKeyHash);
+  writer.writeString(offsets[15], object.msgid);
+  writer.writeStringList(offsets[16], object.rawEvents);
+  writer.writeString(offsets[17], object.realMessage);
+  writer.writeDateTime(offsets[18], object.receiveAt);
   writer.writeObject<MsgReply>(
-    offsets[17],
+    offsets[19],
     allOffsets,
     MsgReplySchema.serialize,
     object.reply,
   );
-  writer.writeInt(offsets[18], object.requestConfrim?.index);
-  writer.writeLong(offsets[19], object.roomId);
-  writer.writeInt(offsets[20], object.sent.index);
-  writer.writeBool(offsets[21], object.stringify);
-  writer.writeString(offsets[22], object.subEvent);
-  writer.writeString(offsets[23], object.to);
+  writer.writeInt(offsets[20], object.requestConfrim?.index);
+  writer.writeLong(offsets[21], object.roomId);
+  writer.writeInt(offsets[22], object.sent.index);
+  writer.writeBool(offsets[23], object.stringify);
+  writer.writeString(offsets[24], object.subEvent);
+  writer.writeString(offsets[25], object.to);
 }
 
 Message _messageDeserialize(
@@ -283,44 +308,46 @@ Message _messageDeserialize(
   Map<Type, List<int>> allOffsets,
 ) {
   final object = Message(
-    content: reader.readString(offsets[1]),
-    createdAt: reader.readDateTime(offsets[2]),
+    content: reader.readString(offsets[2]),
+    createdAt: reader.readDateTime(offsets[3]),
     encryptType:
-        _MessageencryptTypeValueEnumMap[reader.readIntOrNull(offsets[3])] ??
+        _MessageencryptTypeValueEnumMap[reader.readIntOrNull(offsets[4])] ??
             MessageEncryptType.signal,
-    eventIds: reader.readStringList(offsets[4]) ?? [],
-    from: reader.readString(offsets[5]),
-    idPubkey: reader.readString(offsets[7]),
-    identityId: reader.readLong(offsets[8]),
-    isMeSend: reader.readBoolOrNull(offsets[9]) ?? false,
-    isSystem: reader.readBoolOrNull(offsets[11]) ?? false,
-    msgKeyHash: reader.readStringOrNull(offsets[13]),
-    msgid: reader.readString(offsets[14]),
-    realMessage: reader.readStringOrNull(offsets[15]),
+    eventIds: reader.readStringList(offsets[5]) ?? [],
+    from: reader.readString(offsets[6]),
+    idPubkey: reader.readString(offsets[8]),
+    identityId: reader.readLong(offsets[9]),
+    isMeSend: reader.readBoolOrNull(offsets[10]) ?? false,
+    isSystem: reader.readBoolOrNull(offsets[12]) ?? false,
+    msgKeyHash: reader.readStringOrNull(offsets[14]),
+    msgid: reader.readString(offsets[15]),
+    rawEvents: reader.readStringList(offsets[16]) ?? [],
+    realMessage: reader.readStringOrNull(offsets[17]),
     reply: reader.readObjectOrNull<MsgReply>(
-      offsets[17],
+      offsets[19],
       MsgReplySchema.deserialize,
       allOffsets,
     ),
-    roomId: reader.readLong(offsets[19]),
-    sent: _MessagesentValueEnumMap[reader.readIntOrNull(offsets[20])] ??
+    roomId: reader.readLong(offsets[21]),
+    sent: _MessagesentValueEnumMap[reader.readIntOrNull(offsets[22])] ??
         SendStatusType.sending,
-    to: reader.readString(offsets[23]),
+    to: reader.readString(offsets[25]),
   );
   object.cashuInfo = reader.readObjectOrNull<CashuInfoModel>(
     offsets[0],
     CashuInfoModelSchema.deserialize,
     allOffsets,
   );
+  object.confirmResult = reader.readStringOrNull(offsets[1]);
   object.id = id;
-  object.isRead = reader.readBool(offsets[10]);
+  object.isRead = reader.readBool(offsets[11]);
   object.mediaType =
-      _MessagemediaTypeValueEnumMap[reader.readIntOrNull(offsets[12])] ??
+      _MessagemediaTypeValueEnumMap[reader.readIntOrNull(offsets[13])] ??
           MessageMediaType.text;
-  object.receiveAt = reader.readDateTimeOrNull(offsets[16]);
+  object.receiveAt = reader.readDateTimeOrNull(offsets[18]);
   object.requestConfrim =
-      _MessagerequestConfrimValueEnumMap[reader.readIntOrNull(offsets[18])];
-  object.subEvent = reader.readStringOrNull(offsets[22]);
+      _MessagerequestConfrimValueEnumMap[reader.readIntOrNull(offsets[20])];
+  object.subEvent = reader.readStringOrNull(offsets[24]);
   return object;
 }
 
@@ -338,58 +365,62 @@ P _messageDeserializeProp<P>(
         allOffsets,
       )) as P;
     case 1:
-      return (reader.readString(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 2:
-      return (reader.readDateTime(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 3:
+      return (reader.readDateTime(offset)) as P;
+    case 4:
       return (_MessageencryptTypeValueEnumMap[reader.readIntOrNull(offset)] ??
           MessageEncryptType.signal) as P;
-    case 4:
-      return (reader.readStringList(offset) ?? []) as P;
     case 5:
-      return (reader.readString(offset)) as P;
+      return (reader.readStringList(offset) ?? []) as P;
     case 6:
-      return (reader.readLong(offset)) as P;
-    case 7:
       return (reader.readString(offset)) as P;
-    case 8:
+    case 7:
       return (reader.readLong(offset)) as P;
+    case 8:
+      return (reader.readString(offset)) as P;
     case 9:
-      return (reader.readBoolOrNull(offset) ?? false) as P;
+      return (reader.readLong(offset)) as P;
     case 10:
-      return (reader.readBool(offset)) as P;
-    case 11:
       return (reader.readBoolOrNull(offset) ?? false) as P;
+    case 11:
+      return (reader.readBool(offset)) as P;
     case 12:
+      return (reader.readBoolOrNull(offset) ?? false) as P;
+    case 13:
       return (_MessagemediaTypeValueEnumMap[reader.readIntOrNull(offset)] ??
           MessageMediaType.text) as P;
-    case 13:
-      return (reader.readStringOrNull(offset)) as P;
     case 14:
-      return (reader.readString(offset)) as P;
-    case 15:
       return (reader.readStringOrNull(offset)) as P;
+    case 15:
+      return (reader.readString(offset)) as P;
     case 16:
-      return (reader.readDateTimeOrNull(offset)) as P;
+      return (reader.readStringList(offset) ?? []) as P;
     case 17:
+      return (reader.readStringOrNull(offset)) as P;
+    case 18:
+      return (reader.readDateTimeOrNull(offset)) as P;
+    case 19:
       return (reader.readObjectOrNull<MsgReply>(
         offset,
         MsgReplySchema.deserialize,
         allOffsets,
       )) as P;
-    case 18:
+    case 20:
       return (_MessagerequestConfrimValueEnumMap[reader.readIntOrNull(offset)])
           as P;
-    case 19:
+    case 21:
       return (reader.readLong(offset)) as P;
-    case 20:
+    case 22:
       return (_MessagesentValueEnumMap[reader.readIntOrNull(offset)] ??
           SendStatusType.sending) as P;
-    case 21:
-      return (reader.readBoolOrNull(offset)) as P;
-    case 22:
-      return (reader.readStringOrNull(offset)) as P;
     case 23:
+      return (reader.readBoolOrNull(offset)) as P;
+    case 24:
+      return (reader.readStringOrNull(offset)) as P;
+    case 25:
       return (reader.readString(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -421,6 +452,10 @@ const _MessagemediaTypeEnumValueMap = {
   'groupInvite': 7,
   'file': 8,
   'groupInviteConfirm': 9,
+  'botText': 10,
+  'botPricePerMessageRequest': 11,
+  'botSelectionRequest': 12,
+  'botOneTimePaymentRequest': 13,
 };
 const _MessagemediaTypeValueEnumMap = {
   0: MessageMediaType.text,
@@ -433,6 +468,10 @@ const _MessagemediaTypeValueEnumMap = {
   7: MessageMediaType.groupInvite,
   8: MessageMediaType.file,
   9: MessageMediaType.groupInviteConfirm,
+  10: MessageMediaType.botText,
+  11: MessageMediaType.botPricePerMessageRequest,
+  12: MessageMediaType.botSelectionRequest,
+  13: MessageMediaType.botOneTimePaymentRequest,
 };
 const _MessagerequestConfrimEnumValueMap = {
   'none': 0,
@@ -791,6 +830,155 @@ extension MessageQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNotNull(
         property: r'cashuInfo',
+      ));
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterFilterCondition> confirmResultIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'confirmResult',
+      ));
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterFilterCondition>
+      confirmResultIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'confirmResult',
+      ));
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterFilterCondition> confirmResultEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'confirmResult',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterFilterCondition>
+      confirmResultGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'confirmResult',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterFilterCondition> confirmResultLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'confirmResult',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterFilterCondition> confirmResultBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'confirmResult',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterFilterCondition> confirmResultStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'confirmResult',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterFilterCondition> confirmResultEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'confirmResult',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterFilterCondition> confirmResultContains(
+      String value,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'confirmResult',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterFilterCondition> confirmResultMatches(
+      String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'confirmResult',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterFilterCondition> confirmResultIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'confirmResult',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterFilterCondition>
+      confirmResultIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'confirmResult',
+        value: '',
       ));
     });
   }
@@ -2027,6 +2215,226 @@ extension MessageQueryFilter
     });
   }
 
+  QueryBuilder<Message, Message, QAfterFilterCondition> rawEventsElementEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'rawEvents',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterFilterCondition>
+      rawEventsElementGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'rawEvents',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterFilterCondition>
+      rawEventsElementLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'rawEvents',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterFilterCondition> rawEventsElementBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'rawEvents',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterFilterCondition>
+      rawEventsElementStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'rawEvents',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterFilterCondition>
+      rawEventsElementEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'rawEvents',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterFilterCondition>
+      rawEventsElementContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'rawEvents',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterFilterCondition> rawEventsElementMatches(
+      String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'rawEvents',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterFilterCondition>
+      rawEventsElementIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'rawEvents',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterFilterCondition>
+      rawEventsElementIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'rawEvents',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterFilterCondition> rawEventsLengthEqualTo(
+      int length) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'rawEvents',
+        length,
+        true,
+        length,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterFilterCondition> rawEventsIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'rawEvents',
+        0,
+        true,
+        0,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterFilterCondition> rawEventsIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'rawEvents',
+        0,
+        false,
+        999999,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterFilterCondition> rawEventsLengthLessThan(
+    int length, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'rawEvents',
+        0,
+        true,
+        length,
+        include,
+      );
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterFilterCondition>
+      rawEventsLengthGreaterThan(
+    int length, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'rawEvents',
+        length,
+        include,
+        999999,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterFilterCondition> rawEventsLengthBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'rawEvents',
+        lower,
+        includeLower,
+        upper,
+        includeUpper,
+      );
+    });
+  }
+
   QueryBuilder<Message, Message, QAfterFilterCondition> realMessageIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNull(
@@ -2759,6 +3167,18 @@ extension MessageQueryLinks
     on QueryBuilder<Message, Message, QFilterCondition> {}
 
 extension MessageQuerySortBy on QueryBuilder<Message, Message, QSortBy> {
+  QueryBuilder<Message, Message, QAfterSortBy> sortByConfirmResult() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'confirmResult', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterSortBy> sortByConfirmResultDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'confirmResult', Sort.desc);
+    });
+  }
+
   QueryBuilder<Message, Message, QAfterSortBy> sortByContent() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'content', Sort.asc);
@@ -3014,6 +3434,18 @@ extension MessageQuerySortBy on QueryBuilder<Message, Message, QSortBy> {
 
 extension MessageQuerySortThenBy
     on QueryBuilder<Message, Message, QSortThenBy> {
+  QueryBuilder<Message, Message, QAfterSortBy> thenByConfirmResult() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'confirmResult', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Message, Message, QAfterSortBy> thenByConfirmResultDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'confirmResult', Sort.desc);
+    });
+  }
+
   QueryBuilder<Message, Message, QAfterSortBy> thenByContent() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'content', Sort.asc);
@@ -3281,6 +3713,14 @@ extension MessageQuerySortThenBy
 
 extension MessageQueryWhereDistinct
     on QueryBuilder<Message, Message, QDistinct> {
+  QueryBuilder<Message, Message, QDistinct> distinctByConfirmResult(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'confirmResult',
+          caseSensitive: caseSensitive);
+    });
+  }
+
   QueryBuilder<Message, Message, QDistinct> distinctByContent(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
@@ -3370,6 +3810,12 @@ extension MessageQueryWhereDistinct
     });
   }
 
+  QueryBuilder<Message, Message, QDistinct> distinctByRawEvents() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'rawEvents');
+    });
+  }
+
   QueryBuilder<Message, Message, QDistinct> distinctByRealMessage(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
@@ -3433,6 +3879,12 @@ extension MessageQueryProperty
   QueryBuilder<Message, CashuInfoModel?, QQueryOperations> cashuInfoProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'cashuInfo');
+    });
+  }
+
+  QueryBuilder<Message, String?, QQueryOperations> confirmResultProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'confirmResult');
     });
   }
 
@@ -3519,6 +3971,12 @@ extension MessageQueryProperty
   QueryBuilder<Message, String, QQueryOperations> msgidProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'msgid');
+    });
+  }
+
+  QueryBuilder<Message, List<String>, QQueryOperations> rawEventsProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'rawEvents');
     });
   }
 

@@ -1,10 +1,11 @@
+import 'dart:async' show TimeoutException;
 import 'dart:convert' show JsonEncoder, jsonEncode, jsonDecode;
 import 'dart:io' show Directory, File, FileMode, Platform;
 import 'dart:math' show Random;
 
 import 'package:app/controller/setting.controller.dart';
 import 'package:app/global.dart';
-import 'package:app/page/routes.dart';
+
 import 'package:app/service/storage.dart';
 import 'package:app/utils/config.dart';
 import 'package:app/utils/log_file.dart';
@@ -13,7 +14,6 @@ import 'package:convert/convert.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart' show DateFormat;
@@ -188,16 +188,6 @@ String getYearMonthDay() {
   return "$year-$month-$day";
 }
 
-Future handleQRScan() async {
-  if (await Permission.camera.request().isGranted) {
-    Get.toNamed(Routes.scanQR);
-  } else {
-    EasyLoading.showToast('Camera permission not grant');
-    await Future.delayed(const Duration(milliseconds: 1000), () => {});
-    openAppSettings();
-  }
-}
-
 bool isEmail(String input) {
   const pattern =
       r'^[\w-]+(\.[\w-]+)*@[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)*(\.[a-zA-Z]{2,})$';
@@ -286,12 +276,29 @@ class MyOutput extends LogOutput {
 }
 
 class ErrorMessages {
-  static String relayIsEmptyException =
-      '''Insufficient balance to pay for relay. 
+  static String signalDecryptError = 'protobuf encoding was invalid';
+  static String relayIsEmptyException = '''Relay disconnected. Please retry.''';
+  static String noFundsInfo = '''Insufficient balance to pay relay. 
 Please check ecash balance and mint.''';
+  static String noFunds = 'No Funds';
+  static String signedPrekeyNotfound = 'signed_pre_key not found';
 }
 
 class Utils {
+  static Future<void> asyncWithTimeout(Function excute, Duration timeout,
+      [String? errorMessage]) async {
+    try {
+      await excute().timeout(
+        timeout,
+        onTimeout: () {
+          throw TimeoutException(errorMessage ?? 'Execute_timeout');
+        },
+      );
+    } catch (e) {
+      rethrow;
+    }
+  }
+
   static initLoggger(Directory directory) async {
     setLogger(Logger(
         filter: kReleaseMode ? MyLogFilter() : null,
@@ -306,9 +313,7 @@ class Utils {
             : null));
   }
 
-  static Future<File> createLogFile(
-    String dbFolder,
-  ) async {
+  static Future<File> createLogFile(String dbFolder) async {
     Directory logDir = Directory('$dbFolder/logs');
     logDir.createSync(recursive: true);
     String time = getYearMonthDay();
@@ -320,7 +325,6 @@ class Utils {
  kDebugMode: $kDebugMode \n
  path: ${file.path} \n''';
     file.writeAsStringSync(initString, mode: FileMode.writeOnlyAppend);
-
     return file;
   }
 
@@ -352,9 +356,7 @@ class Utils {
       content: Text(content),
       actions: <Widget>[
         CupertinoDialogAction(
-          child: const Text(
-            'OK',
-          ),
+          child: const Text('OK'),
           onPressed: () {
             Get.back();
           },
@@ -373,18 +375,14 @@ class Utils {
       content: Text(content),
       actions: <Widget>[
         CupertinoDialogAction(
-          child: const Text(
-            'Cancel',
-          ),
+          child: const Text('Cancel'),
           onPressed: () {
             Get.back();
           },
         ),
         CupertinoDialogAction(
           isDefaultAction: true,
-          child: Text(
-            btnText,
-          ),
+          child: Text(btnText),
           onPressed: () {
             onPressed();
           },
@@ -422,5 +420,12 @@ class Utils {
     int index = e.message.indexOf('Stack backtrace:');
     if (index == -1) return e.message;
     return e.message.substring(0, index).trim();
+  }
+
+  static String randomString(int i) {
+    const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+    final random = Random.secure();
+    return List.generate(i, (index) => chars[random.nextInt(chars.length)])
+        .join();
   }
 }

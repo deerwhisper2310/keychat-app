@@ -16,11 +16,14 @@ class LongTextPreviewPage extends StatelessWidget {
           onPressed: () {
             Get.back();
           },
-          icon: const Icon(Icons.close),
+          icon: const Icon(
+            Icons.close,
+            color: Colors.purple,
+          ),
         ),
         body: Stack(children: <Widget>[
           GestureDetector(
-            onTap: () {
+            onDoubleTap: () {
               Navigator.pop(context);
             },
           ),
@@ -31,17 +34,13 @@ class LongTextPreviewPage extends StatelessWidget {
                   child: MarkdownBody(
                       data: text,
                       selectable: true,
+                      softLineBreak: true,
                       styleSheet: MarkdownStyleSheet(
-                        p: Theme.of(Get.context!)
-                            .textTheme
-                            .bodyLarge
-                            ?.copyWith(fontSize: 18),
-                      ),
-                      onTapLink: (
-                        url,
-                        url2,
-                        url3,
-                      ) {
+                          p: Theme.of(Get.context!)
+                              .textTheme
+                              .bodyLarge
+                              ?.copyWith(fontSize: 18)),
+                      onTapLink: (url, url2, url3) {
                         if (!url.startsWith('http') && url2 != null) {
                           url = url2;
                         }

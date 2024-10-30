@@ -4,7 +4,6 @@ import 'package:app/models/models.dart';
 import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/page/common.dart';
 import 'package:app/page/new_friends_rooms.dart';
-import 'package:app/page/routes.dart';
 import 'package:app/page/search_page.dart';
 import 'package:app/page/widgets/home_drop_menu.dart';
 import 'package:app/service/room.service.dart';
@@ -14,11 +13,11 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
-import 'package:flutter_svg/svg.dart';
 import 'package:get/get.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
 
 import '../controller/home.controller.dart';
+import 'RecommendBots/RecommendBots.dart';
 import 'components.dart';
 
 class RoomList extends StatelessWidget {
@@ -51,48 +50,37 @@ class RoomList extends StatelessWidget {
                           ? Alignment.center
                           : Alignment.bottomCenter,
                       children: <Widget>[
-                        homeController.tabBodyDatas.length == 1
-                            ? const Row(
-                                children: [
-                                  Text(
-                                    '  Keychat',
-                                    style: TextStyle(
-                                      fontSize: 20,
-                                    ),
-                                  ),
-                                ],
-                              )
-                            : TabBar(
-                                indicatorColor:
-                                    Theme.of(context).colorScheme.primary,
-                                indicatorWeight: 1,
-                                isScrollable: true,
-                                controller: homeController.tabController,
-                                tabAlignment: TabAlignment.start,
-                                labelStyle: const TextStyle(
-                                    fontSize: 16, fontWeight: FontWeight.w600),
-                                dividerColor: Colors.transparent,
-                                tabs: homeController.tabBodyDatas.values
-                                    .map((TabData e) {
-                                  Identity identity = e.identity;
-                                  var title = identity.displayName.length > 15
-                                      ? "${identity.displayName.substring(0, 15)}..."
-                                      : identity.displayName;
-                                  return Tab(
-                                      child: badges.Badge(
-                                    showBadge: (e.unReadCount +
-                                            e.anonymousUnReadCount) >
+                        TabBar(
+                            indicatorColor:
+                                Theme.of(context).colorScheme.primary,
+                            indicatorWeight: 1,
+                            isScrollable: true,
+                            controller: homeController.tabController,
+                            tabAlignment: TabAlignment.start,
+                            labelStyle: const TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.w600),
+                            dividerColor: Colors.transparent,
+                            tabs: homeController.tabBodyDatas.values
+                                .map((TabData e) {
+                              Identity identity = e.identity;
+                              var title = identity.displayName.length > 15
+                                  ? "${identity.displayName.substring(0, 15)}..."
+                                  : identity.displayName;
+                              return Tab(
+                                  child: badges.Badge(
+                                showBadge:
+                                    (e.unReadCount + e.anonymousUnReadCount) >
                                         0,
-                                    position: badges.BadgePosition.topEnd(
-                                        top: -10, end: -15),
-                                    child: Text(
-                                      title,
-                                      style: const TextStyle(
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                  ));
-                                }).toList()),
+                                position: badges.BadgePosition.topEnd(
+                                    top: -10, end: -15),
+                                child: Text(
+                                  title,
+                                  style: const TextStyle(
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ));
+                            }).toList()),
                       ],
                     ),
                   )))),
@@ -105,67 +93,67 @@ class RoomList extends StatelessWidget {
             List rooms = data.rooms;
             DateTime messageExpired =
                 DateTime.now().subtract(const Duration(seconds: 5));
-            return rooms.length == 3 &&
-                    rooms[1].length == 0 &&
-                    rooms[2].length == 0
-                ? _noRoomsView(context, homeController, data.identity)
-                : ListView.separated(
-                    key: ObjectKey('roomlist_tab_$identityId'),
-                    padding: const EdgeInsets.only(
-                        bottom: kMinInteractiveDimension * 2),
-                    separatorBuilder: (context, index) {
-                      if (rooms[index] is Room) {
-                        if (rooms[index].pin) {
-                          return Container();
-                        }
-                        return divider;
-                      }
+            return ListView.separated(
+                key: ObjectKey('roomlist_tab_$identityId'),
+                padding:
+                    const EdgeInsets.only(bottom: kMinInteractiveDimension * 2),
+                separatorBuilder: (context, index) {
+                  if (rooms[index] is Room) {
+                    if (rooms[index].pin) {
                       return Container();
-                    },
-                    itemCount: friendsCount,
-                    itemBuilder: (context, index) {
-                      if (index == 0) {
-                        return getSearchWidget(context, pinTileBackground);
-                      }
-                      if (index == 1) {
-                        return getNewFriendsWidget(data, rooms[1] as List<Room>,
-                            pinTileBackground, context);
-                      }
-                      if (index == 2) {
-                        return getRequestingWidget(data, rooms[2] as List<Room>,
-                            pinTileBackground, context);
-                      }
-                      Room room = rooms[index];
-                      return GestureDetector(
-                          key: ObjectKey('${index}_room${room.id}'),
-                          onTap: () async {
-                            await Get.toNamed('/room/${room.id}',
-                                arguments: room);
+                    }
+                    return divider;
+                  }
+                  return Container();
+                },
+                itemCount: friendsCount,
+                itemBuilder: (context, index) {
+                  if (index == 0) {
+                    if (data.rooms.length > 4) {
+                      return getSearchWidget(context, pinTileBackground);
+                    }
+                    return const SizedBox();
+                  }
+                  if (index == 1) {
+                    return RecommendBots(
+                        data.identity, List<Room>.from(rooms.sublist(4)));
+                  }
+                  if (index == 2) {
+                    return getNewFriendsWidget(data, rooms[3] as List<Room>,
+                        pinTileBackground, context);
+                  }
+                  if (index == 3) {
+                    return getRequestingWidget(data, rooms[3] as List<Room>,
+                        pinTileBackground, context);
+                  }
+                  Room room = rooms[index];
+                  return GestureDetector(
+                      key: ObjectKey('${index}_room${room.id}'),
+                      onTap: () async {
+                        await Get.toNamed('/room/${room.id}', arguments: room);
 
-                            RoomService().markAllRead(
-                                identityId: room.identityId, roomId: room.id);
-                          },
-                          onLongPress: () =>
-                              RoomUtil.showRoomActionSheet(context, room),
-                          child: Container(
-                              color: room.pin
-                                  ? pinTileBackground
-                                  : Colors.transparent,
-                              child: ListTile(
-                                leading: getAvatarDot(room),
-                                key: Key('room:${room.id}'),
-                                title: Text(
-                                  room.getRoomName(),
-                                  maxLines: 1,
-                                  style:
-                                      Theme.of(context).textTheme.titleMedium,
-                                ),
-                                subtitle: RoomUtil.getSubtitleDisplay(
-                                        room, messageExpired) ??
-                                    const Text(''),
-                                trailing: _getRoomTrailing(context, room),
-                              )));
-                    });
+                        RoomService().markAllRead(
+                            identityId: room.identityId, roomId: room.id);
+                      },
+                      onLongPress: () =>
+                          RoomUtil.showRoomActionSheet(context, room),
+                      child: Container(
+                          color:
+                              room.pin ? pinTileBackground : Colors.transparent,
+                          child: ListTile(
+                            leading: getAvatarDot(room),
+                            key: Key('room:${room.id}'),
+                            title: Text(
+                              room.getRoomName(),
+                              maxLines: 1,
+                              style: Theme.of(context).textTheme.titleMedium,
+                            ),
+                            subtitle: RoomUtil.getSubtitleDisplay(
+                                    room, messageExpired) ??
+                                const Text(''),
+                            trailing: _getRoomTrailing(context, room),
+                          )));
+                });
           }).toList())),
     );
   }
@@ -336,52 +324,10 @@ class RoomList extends StatelessWidget {
             ));
       default:
     }
-    return const HomeDropMenuWidget();
-  }
-
-  Widget _noRoomsView(
-      BuildContext context, HomeController home2controller, Identity identity) {
-    return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 50),
-        child: Center(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              const SizedBox(
-                height: 200,
-              ),
-              SvgPicture.asset(
-                'assets/images/no-message.svg',
-                height: 80,
-                width: 80,
-              ),
-              textSmallGray(context, 'No friends'),
-              const SizedBox(
-                height: 20,
-              ),
-              OutlinedButton(
-                  onPressed: () {
-                    showMyQrCode(context, identity, false);
-                  },
-                  style: ButtonStyle(
-                      minimumSize: WidgetStateProperty.all(
-                          const Size(double.infinity, 40))),
-                  child: const Text('Show My QR Code')),
-              const SizedBox(
-                height: 20,
-              ),
-              OutlinedButton(
-                onPressed: () {
-                  Get.toNamed(Routes.ecash);
-                },
-                style: ButtonStyle(
-                    minimumSize: WidgetStateProperty.all(
-                        const Size(double.infinity, 40))),
-                child: const Text('Deposit Ecash Sat to start a chat'),
-              )
-            ],
-          ),
-        ));
+    return badges.Badge(
+        showBadge: homeController.addFriendTips.value,
+        position: badges.BadgePosition.topEnd(top: 5, end: 5),
+        child: HomeDropMenuWidget(homeController.addFriendTips.value));
   }
 
   _showDialogForReconnect(bool status, String message) {

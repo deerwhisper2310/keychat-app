@@ -1,6 +1,6 @@
 import 'package:app/page/components.dart';
+import 'package:app/page/login/import_nsec.dart';
 import 'package:flutter/material.dart';
-import 'package:keychat_ecash/ecash_controller.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart';
 import 'package:app/controller/home.controller.dart';
 import 'package:app/utils.dart';
@@ -53,7 +53,20 @@ class _CreateAccountState extends State<CreateAccount> {
   Widget build(BuildContext context) {
     return Scaffold(
         appBar: widget.type != "tab"
-            ? AppBar(title: const Text('Create ID'))
+            ? AppBar(
+                title: const Text('Create ID'),
+                bottom: const PreferredSize(
+                    preferredSize: Size.fromHeight(0),
+                    child: Text('Derived from seed phrase')),
+                actions: Get.previousRoute == '/login'
+                    ? []
+                    : [
+                        TextButton(
+                            onPressed: () {
+                              Get.off(() => const ImportNsec());
+                            },
+                            child: const Text('Import Nsec'))
+                      ])
             : null,
         floatingActionButton: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -77,14 +90,13 @@ class _CreateAccountState extends State<CreateAccount> {
                         bool isFirstAccount =
                             await IdentityService().count() == 0;
 
-                        var identity = await IdentityService().createIdentity(
+                        await IdentityService().createIdentity(
                             name: name,
                             account: accounts[selected],
+                            index: selected,
                             isFirstAccount: isFirstAccount);
                         textEditingController.clear();
-                        if (isFirstAccount) {
-                          Get.find<EcashController>().initIdentity(identity);
-                        }
+
                         EasyLoading.dismiss();
                         if (Get.arguments == 'create') {
                           await Get.find<HomeController>().loadIdentity();
@@ -115,9 +127,7 @@ class _CreateAccountState extends State<CreateAccount> {
                       border: OutlineInputBorder(),
                     ),
                   ),
-                  const SizedBox(
-                    height: 16,
-                  ),
+                  const SizedBox(height: 16),
                   const Text('Select Your Avatar'),
                   accounts.isEmpty
                       ? pageLoadingSpinKit()
@@ -154,9 +164,7 @@ class _CreateAccountState extends State<CreateAccount> {
                                       : null,
                             );
                           }),
-                  const SizedBox(
-                    height: 100,
-                  )
+                  const SizedBox(height: 100)
                 ]))));
   }
 

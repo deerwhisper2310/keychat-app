@@ -69,7 +69,7 @@ class GroupTx {
       required int version,
       int? roomUpdateAt,
       Mykey? sharedKey,
-      String? groupRelay,
+      List<String> sendingRelays = const [],
       String? sharedSignalID}) async {
     Room room = Room(
         toMainPubkey: toMainPubkey,
@@ -80,8 +80,8 @@ class GroupTx {
       ..mykey.value = sharedKey
       ..name = groupName
       ..groupType = groupType
+      ..sendingRelays = sendingRelays
       ..version = version
-      ..groupRelay = groupRelay
       ..sharedSignalID = sharedSignalID;
 
     room = await updateRoom(room, updateMykey: true);
@@ -116,8 +116,7 @@ class GroupTx {
       [Message? message]) async {
     String toMainPubkey = roomProfile.oldToRoomPubKey ?? roomProfile.pubkey;
     String? toRoomPriKey = roomProfile.prikey;
-    int version =
-        roomProfile.updatedAt ?? DateTime.now().millisecondsSinceEpoch;
+    int version = roomProfile.updatedAt;
     List<dynamic> users = roomProfile.users;
     Mykey? roomKey;
     if ((roomProfile.groupType == GroupType.shareKey ||

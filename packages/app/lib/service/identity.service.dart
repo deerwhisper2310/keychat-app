@@ -1,14 +1,18 @@
 import 'package:app/controller/home.controller.dart';
 import 'package:app/global.dart';
 import 'package:app/models/models.dart';
+import 'package:app/models/nostr_event_status.dart';
+import 'package:app/service/relay.service.dart';
 import 'package:app/service/secure_storage.dart';
 
 import 'package:app/service/chatx.service.dart';
 import 'package:app/service/notify.service.dart';
 import 'package:app/service/room.service.dart';
 import 'package:app/service/websocket.service.dart';
+import 'package:app/utils.dart';
 import 'package:get/get.dart';
 import 'package:isar/isar.dart';
+import 'package:keychat_ecash/ecash_controller.dart';
 import 'package:keychat_rust_ffi_plugin/api_signal.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 import 'package:keychat_rust_ffi_plugin/api_signal.dart' as rust_signal;
@@ -31,14 +35,6 @@ class IdentityService {
     var res = await DBProvider.database.mykeys
         .filter()
         .prikeyEqualTo(prikey)
-        .findFirst();
-    return res != null;
-  }
-
-  Future<bool> checkMnemonicsExist(String mnemonics) async {
-    var res = await DBProvider.database.identitys
-        .filter()
-        .mnemonicEqualTo(mnemonics)
         .findFirst();
     return res != null;
   }
@@ -66,33 +62,73 @@ class IdentityService {
   Future<Identity> createIdentity(
       {required String name,
       required rust_nostr.Secp256k1Account account,
+      required int index,
       bool isFirstAccount = false}) async {
     if (account.mnemonic == null) throw Exception('mnemonic is null');
     Isar database = DBProvider.database;
+    HomeController homeController = Get.find<HomeController>();
     Identity iden = Identity(
-        name: name,
-        mnemonic: '',
-        secp256k1PKHex: account.pubkey,
-        secp256k1SKHex: '',
-        curve25519PkHex: account.curve25519PkHex!,
-        curve25519SkHex: '',
-        npub: account.pubkeyBech32);
+        name: name, secp256k1PKHex: account.pubkey, npub: account.pubkeyBech32)
+      ..curve25519PkHex = account.curve25519PkHex!
+      ..index = index;
     await database.writeTxn(() async {
       await database.identitys.put(iden);
+
       // store the prikey in secure storage
-      if (isFirstAccount) {
-        await SecureStorage.instance.writePhraseWords(account.mnemonic!);
+      if (account.mnemonic != null) {
+        await SecureStorage.instance
+            .writePhraseWordsWhenNotExist(account.mnemonic!);
       }
       await SecureStorage.instance
           .writePrikey(iden.secp256k1PKHex, account.prikey);
       await SecureStorage.instance
-          .writePrikey(iden.curve25519PkHex, account.curve25519SkHex!);
+          .writePrikey(iden.curve25519PkHex!, account.curve25519SkHex!);
+    });
+    await homeController.loadRoomList(init: true);
+    try {
+      Get.find<WebsocketService>().listenPubkey([account.pubkey]);
+      Get.find<WebsocketService>().listenPubkeyNip17([account.pubkey]);
+    } catch (e) {}
+
+    if (isFirstAccount) {
+      try {
+        Get.find<EcashController>().initIdentity(iden);
+        // homeController.fetchBots();
+        // homeController
+        //     .createAIIdentity([iden], KeychatGlobal.bot); // create ai identity
+        NotifyService.init(true).then((c) {
+          NotifyService.addPubkeys([account.pubkey]);
+        }).catchError((e, s) {
+          logger.e('initNotifycation error', error: e, stackTrace: s);
+        });
+        RelayService().initRelay();
+      } catch (e, s) {
+        logger.e(e.toString(), error: e, stackTrace: s);
+      }
+    } else {
+      NotifyService.addPubkeys([account.pubkey]);
+    }
+
+    return iden;
+  }
+
+  Future<Identity> createIdentityByPrikey(
+      {required String name,
+      required String hexPubkey,
+      required String prikey}) async {
+    Isar database = DBProvider.database;
+    String npub = rust_nostr.getBech32PubkeyByHex(hex: hexPubkey);
+    Identity iden = Identity(name: name, secp256k1PKHex: hexPubkey, npub: npub)
+      ..index = -1;
+    await database.writeTxn(() async {
+      await database.identitys.put(iden);
+      await SecureStorage.instance.writePrikey(hexPubkey, prikey);
     });
 
     await Get.find<HomeController>().loadRoomList(init: true);
-    Get.find<WebsocketService>().listenPubkey([account.pubkey]);
-    Get.find<WebsocketService>().listenPubkeyNip17([account.pubkey]);
-    NotifyService.addPubkeys([account.pubkey]);
+    Get.find<WebsocketService>().listenPubkey([hexPubkey]);
+    Get.find<WebsocketService>().listenPubkeyNip17([hexPubkey]);
+    NotifyService.addPubkeys([hexPubkey]);
     return iden;
   }
 
@@ -101,7 +137,7 @@ class IdentityService {
 
     int id = identity.id;
     String secp256k1PKHex = identity.secp256k1PKHex;
-    String curve25519PkHex = identity.curve25519PkHex;
+    String? curve25519PkHex = identity.curve25519PkHex;
     await database.writeTxn(() async {
       await database.identitys.delete(id);
       await database.mykeys.filter().identityIdEqualTo(id).deleteAll();
@@ -120,21 +156,22 @@ class IdentityService {
             .filter()
             .roomIdEqualTo(element.id)
             .deleteAll();
-        await database.messageBills
+        await database.nostrEventStatus
             .filter()
             .roomIdEqualTo(element.id)
             .deleteAll();
         String? signalIdPubkey = element.signalIdPubkey;
         KeychatIdentityKeyPair keyPair;
+        var chatxService = Get.find<ChatxService>();
+
         if (signalIdPubkey != null) {
-          keyPair = await Get.find<ChatxService>()
-              .getKeyPairBySignalIdPubkey(signalIdPubkey);
-        } else {
           keyPair =
-              await Get.find<ChatxService>().getKeyPairByIdentity(identity);
+              await chatxService.setupSignalStoreBySignalId(signalIdPubkey);
+        } else {
+          keyPair = await chatxService.getKeyPairByIdentity(identity);
         }
         // delete signal session by remote address
-        await Get.find<ChatxService>().deleteSignalSessionKPA(element);
+        await chatxService.deleteSignalSessionKPA(element);
         // delete signal session by identity id
         await rust_signal.deleteSessionByDeviceId(
             keyPair: keyPair, deviceId: id);
@@ -142,10 +179,12 @@ class IdentityService {
       await database.contacts.filter().identityIdEqualTo(id).deleteAll();
       await deleteAllByIdentity(id);
       await SecureStorage.instance.deletePrikey(secp256k1PKHex);
-      await SecureStorage.instance.deletePrikey(curve25519PkHex);
+      if (curve25519PkHex != null) {
+        await SecureStorage.instance.deletePrikey(curve25519PkHex);
+      }
     });
     Get.find<HomeController>().loadRoomList(init: true);
-    NotifyService.initNofityConfig();
+    NotifyService.syncPubkeysToServer();
   }
 
   Future deleteMykey(List<int> ids) async {

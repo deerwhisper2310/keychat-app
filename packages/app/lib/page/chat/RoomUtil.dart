@@ -3,10 +3,10 @@ import 'package:app/constants.dart';
 import 'package:app/global.dart';
 import 'package:app/models/contact.dart';
 import 'package:app/models/embedded/msg_reply.dart';
-import 'package:app/models/event_log.dart';
 import 'package:app/models/identity.dart';
 import 'package:app/models/keychat/group_message.dart';
 import 'package:app/models/keychat/qrcode_user_model.dart';
+import 'package:app/models/nostr_event_status.dart';
 import 'package:app/nostr-core/nostr_event.dart';
 import 'package:app/page/chat/ChatMediaFilesPage.dart';
 import 'package:app/page/chat/contact_page.dart';
@@ -22,7 +22,6 @@ import 'package:app/models/db_provider.dart';
 import 'package:app/models/embedded/msg_file_info.dart';
 
 import 'package:app/models/message.dart';
-import 'package:app/models/message_bill.dart';
 import 'package:app/models/room.dart';
 import 'package:app/page/components.dart';
 import 'package:app/page/widgets/image_min_preview_widget.dart';
@@ -66,7 +65,7 @@ Let's start an encrypted chat.''';
   static Future executeAutoDelete() async {
     // delete nostr event log
     await DBProvider.database.writeTxn(() async {
-      await DBProvider.database.eventLogs
+      await DBProvider.database.nostrEventStatus
           .filter()
           .createdAtLessThan(DateTime.now().subtract(const Duration(days: 30)))
           .deleteAll();
@@ -113,11 +112,6 @@ Let's start an encrypted chat.''';
     Isar database = DBProvider.database;
     await database.writeTxn(() async {
       await database.messages
-          .filter()
-          .roomIdEqualTo(roomId)
-          .createdAtLessThan(fromAt)
-          .deleteAll();
-      await database.messageBills
           .filter()
           .roomIdEqualTo(roomId)
           .createdAtLessThan(fromAt)
@@ -259,12 +253,8 @@ Let's start an encrypted chat.''';
     var style = TextStyle(
         color: Theme.of(Get.context!).colorScheme.onSurface.withOpacity(0.6),
         fontSize: 14);
-    if (m.isMeSend) {
-      if (m.sent == SendStatusType.failed ||
-          (m.sent == SendStatusType.sending &&
-              m.createdAt.isBefore(messageExpired))) {
-        style = style.copyWith(color: Colors.red);
-      }
+    if (m.isMeSend && m.sent == SendStatusType.failed) {
+      style = style.copyWith(color: Colors.red);
     }
 
     return Text(text,
@@ -312,7 +302,7 @@ Let's start an encrypted chat.''';
               /// default behavior, turns the action's text to bold text.
               onPressed: () async {
                 await RoomService().deleteRoomMessage(room);
-                await Get.find<HomeController>()
+                Get.find<HomeController>()
                     .loadIdentityRoomList(room.identityId);
                 if (onDeleteHistory != null) {
                   onDeleteHistory();
@@ -439,7 +429,7 @@ Let's start an encrypted chat.''';
             return FilledButton(
               onPressed: () async {
                 await Get.offAndToNamed('/room/${room.id}', arguments: room);
-                await Get.find<HomeController>()
+                Get.find<HomeController>()
                     .loadIdentityRoomList(room.identityId);
               },
               child: const Text('Send Message'),
@@ -448,7 +438,8 @@ Let's start an encrypted chat.''';
     );
   }
 
-  static Future processUserQRCode(QRUserModel model) async {
+  static Future processUserQRCode(QRUserModel model,
+      [bool fromAddPage = false]) async {
     if (model.time <
         DateTime.now().millisecondsSinceEpoch -
             1000 * 3600 * KeychatGlobal.oneTimePubkeysLifetime) {
@@ -474,15 +465,19 @@ Let's start an encrypted chat.''';
 
     Contact contact =
         Contact(pubkey: pubkey, npubkey: npub, identityId: identity.id)
-          ..hisRelay = model.relay.isEmpty ? null : model.relay
           ..curve25519PkHex = model.curve25519PkHex
           ..name = model.name;
 
-    await Get.off(() => ContactPage(
-          identityId: identity.id,
-          contact: contact,
-          title: 'Add Contact',
-        )..model = model);
+    var page = ContactPage(
+      identityId: identity.id,
+      contact: contact,
+      title: 'Add Contact',
+    )..model = model;
+    if (fromAddPage) {
+      await Get.off(() => page);
+      return;
+    }
+    await Get.to(() => page);
   }
 
   static String getGroupModeName(GroupType type) {
@@ -506,6 +501,7 @@ Let's start an encrypted chat.''';
 3. Forward Secrecy ✅
 4. Backward Secrecy 🟢60% 
 5. Metadata Privacy 🟢80%
+6. Recommended Group Limit: <60
 ''';
       case GroupType.shareKey:
         return '''1. Members < 30
@@ -516,19 +512,58 @@ Let's start an encrypted chat.''';
 3. Forward Secrecy ✅ 
 4. Backward Secrecy ✅ 
 5. Metadata Privacy ✅
-Sending a message is essentially sending multiple one-on-one chats. More stamps are required.
+6. Recommended Group Limit: <6
+7. Sending a message is essentially sending multiple one-on-one chats. More stamps are required.
 ''';
       default:
     }
-    return 'common';
+    return 'Common';
   }
 
   static MessageEncryptType getEncryptMode(NostrEventModel event,
       [NostrEventModel? sourceEvent]) {
     if (sourceEvent == null) return event.encryptType;
+    if (event.kind == EventKinds.nip17) return MessageEncryptType.nip17;
     if (event.isNip4) return MessageEncryptType.nip4WrapNip4;
     if (event.isSignal) return MessageEncryptType.nip4WrapSignal;
 
     return event.encryptType;
+  }
+
+  static Widget getStatusCheckIcon(int max, int success) {
+    if (max == success && max > 0) {
+      return const Icon(Icons.check_circle, color: Colors.green);
+    }
+
+    if (success == 0) return const Icon(Icons.error_outline, color: Colors.red);
+
+    return const Icon(Icons.circle, color: Colors.lightGreen);
+  }
+
+  static Widget getStatusArrowIcon(int max, int success, bool down) {
+    IconData icon = down ? Icons.arrow_downward : Icons.arrow_upward_outlined;
+    if (max == success && max > 0) {
+      return Icon(icon, color: Colors.green);
+    }
+
+    if (success == 0) return Icon(icon, color: Colors.red);
+
+    return Icon(icon, color: Colors.lightGreen);
+  }
+
+  static List<Room> sortRoomList(List<Room> rooms) {
+    rooms.sort((a, b) {
+      if (a.pin || b.pin) {
+        if (a.pin && b.pin) {
+          return b.pinAt!.compareTo(a.pinAt!);
+        }
+        return a.pin ? -1 : 1;
+      }
+      if (a.lastMessageModel == null) return 1;
+      if (b.lastMessageModel == null) return -1;
+      return b.lastMessageModel!.createdAt
+          .compareTo(a.lastMessageModel!.createdAt);
+    });
+    return rooms;
   }
 }

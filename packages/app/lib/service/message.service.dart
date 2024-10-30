@@ -1,5 +1,6 @@
-import 'dart:convert' show jsonDecode;
+import 'dart:convert' show jsonDecode, jsonEncode;
 
+import 'package:app/bot/bot_server_message_model.dart';
 import 'package:app/nostr-core/nostr_event.dart';
 import 'package:app/rust_api.dart';
 import 'package:app/service/file_util.dart';
@@ -25,32 +26,67 @@ class MessageService {
 
   MessageService._internal();
 
-  Future saveMessageModel(Message model, [bool persist = true]) async {
-    if (!model.isMeSend) {
-      model.receiveAt = DateTime.now();
-    }
+  Future saveMessageModel(Message model,
+      {bool persist = true, Room? room}) async {
+    model.receiveAt ??= DateTime.now();
+    // none text type: media, file, cashu...
+    model = await _fillTypeForMessage(model, room?.type == RoomType.bot);
+
     if (!model.isRead) {
       bool isCurrentPage = dbProvider.isCurrentPage(model.roomId);
       if (isCurrentPage) model.isRead = true;
     }
-    // none text type: media, file, cashu...
-    model = await _fillTypeForMessage(model);
 
     if (persist) {
-      await DBProvider.database.writeTxn(() async {
-        await DBProvider.database.messages.put(model);
-      });
+      try {
+        await DBProvider.database.writeTxn(() async {
+          await DBProvider.database.messages.put(model);
+        });
+      } catch (e) {
+        logger.e('persist message error: $e, ${model.content}');
+        throw Exception(
+            'duplicate_db: msgId:${model.msgid} roomId[${model.roomId}] ${model.content}');
+      }
     } else {
       await DBProvider.database.messages.put(model);
     }
 
     logger.i(
         'message_room:${model.roomId} ${model.isMeSend ? 'Send' : 'Receive'}: ${model.content} ');
-
-    // todo change to refresh room
-    await Get.find<HomeController>().loadIdentityRoomList(model.identityId);
-
     await RoomService.getController(model.roomId)?.addMessage(model);
+    if (!model.isRead) {
+      Get.find<HomeController>().loadIdentityRoomList(model.identityId);
+    } else {
+      Get.find<HomeController>().updateLatestMessage(model);
+    }
+    return model;
+  }
+
+  Future saveSystemMessage(Room room, String content,
+      {DateTime? createdAt,
+      String suffix = 'SystemMessage',
+      bool isMeSend = true}) async {
+    Identity identity = room.getIdentity();
+    await saveMessageModel(
+        Message(
+            msgid: Utils.randomString(16),
+            idPubkey: identity.secp256k1PKHex,
+            identityId: room.identityId,
+            roomId: room.id,
+            from: isMeSend ? identity.secp256k1PKHex : room.toMainPubkey,
+            to: isMeSend ? room.toMainPubkey : identity.secp256k1PKHex,
+            content: suffix.isNotEmpty
+                ? '''[$suffix]
+$content'''
+                : content,
+            createdAt: createdAt ?? DateTime.now(),
+            sent: SendStatusType.success,
+            isMeSend: isMeSend,
+            isSystem: true,
+            eventIds: const [],
+            encryptType: MessageEncryptType.signal,
+            rawEvents: const []),
+        room: room);
   }
 
   Future updateMessageAndRefresh(Message message) async {
@@ -109,7 +145,12 @@ class MessageService {
         encryptType: encryptType,
         msgKeyHash: msgKeyHash,
         createdAt: DateTime.fromMillisecondsSinceEpoch(
-            (createdAt ?? events[0].createdAt) * 1000))
+            (createdAt ?? events[0].createdAt) * 1000),
+        rawEvents: events.map((e) {
+          Map m = e.toJson();
+          m['toIdPubkey'] = e.toIdPubkey;
+          return jsonEncode(m);
+        }).toList())
       ..subEvent = subEvent
       ..requestConfrim = requestConfrim;
 
@@ -117,8 +158,7 @@ class MessageService {
     if (isSystem != null) model.isSystem = isSystem;
     if (mediaType != null) model.mediaType = mediaType;
 
-    await saveMessageModel(model, persist);
-    return model;
+    return await saveMessageModel(model, persist: persist, room: room);
   }
 
   Future<int> unreadCount() async {
@@ -217,7 +257,8 @@ class MessageService {
     int lastMessageAt = await Storage.getIntOrZero(key);
 
     if (lastMessageAt > 0) {
-      return DateTime.fromMillisecondsSinceEpoch(lastMessageAt * 1000);
+      return DateTime.fromMillisecondsSinceEpoch(lastMessageAt * 1000)
+          .subtract(const Duration(minutes: 3));
     }
     DateTime? time = await MessageService().getLastMessageTime();
     if (time != null) return time.subtract(const Duration(minutes: 30));
@@ -417,14 +458,14 @@ class MessageService {
   Future deleteMessageById(int id) async {
     Isar database = DBProvider.database;
     await database.writeTxn(() async {
-      return database.messages.filter().idEqualTo(id).deleteAll();
+      await database.messages.filter().idEqualTo(id).deleteAll();
     });
   }
 
   Future deleteMessageByRoomId(int roomId) async {
     Isar database = DBProvider.database;
     await database.writeTxn(() async {
-      return database.messages.filter().roomIdEqualTo(roomId).deleteAll();
+      await database.messages.filter().roomIdEqualTo(roomId).deleteAll();
     });
   }
 
@@ -456,7 +497,7 @@ class MessageService {
 
   Future updateMessage(Message message) async {
     await DBProvider.database.writeTxn(() async {
-      return await DBProvider.database.messages.put(message);
+      await DBProvider.database.messages.put(message);
     });
   }
 
@@ -481,35 +522,7 @@ class MessageService {
         .findAll();
   }
 
-  Future insertMessageBill(MessageBill model) async {
-    Isar database = DBProvider.database;
-
-    await database.writeTxn(() async {
-      return await database.messageBills.put(model);
-    });
-  }
-
-  Future<List<MessageBill>> getMessageBills(String eventId) async {
-    Isar database = DBProvider.database;
-
-    return await database.messageBills
-        .filter()
-        .eventIdEndsWith(eventId)
-        .findAll();
-  }
-
-  Future<List<MessageBill>> getBillByRoomId(int roomId,
-      {int minId = 99999999, int limit = 20}) async {
-    return await DBProvider.database.messageBills
-        .filter()
-        .idLessThan(minId)
-        .roomIdEqualTo(roomId)
-        .sortByCreatedAtDesc()
-        .limit(limit)
-        .findAll();
-  }
-
-  Future<Message> _fillTypeForMessage(Message m) async {
+  Future<Message> _fillTypeForMessage(Message m, bool isBot) async {
     // cashuA
     if (m.mediaType == MessageMediaType.cashuA ||
         m.content.startsWith('cashu')) {
@@ -517,22 +530,36 @@ class MessageService {
     }
     if (m.realMessage != null) return m;
 
-    // image
+    // image/video/file
     MsgFileInfo? mfi = m.convertToMsgFileInfo();
-    if (mfi == null) return m;
-    m.realMessage = mfi.toString();
-    if (mfi.type == MessageMediaType.image.name) {
-      m.mediaType = MessageMediaType.image;
-      FileUtils.downloadForMessage(m, mfi);
+    if (mfi != null) {
+      m.realMessage = mfi.toString();
+      if (mfi.type == MessageMediaType.image.name) {
+        m.mediaType = MessageMediaType.image;
+        FileUtils.downloadForMessage(m, mfi);
+        return m;
+      }
+
+      if (mfi.type == MessageMediaType.video.name) {
+        m.mediaType = MessageMediaType.video;
+      } else if (mfi.type == MessageMediaType.file.name) {
+        m.mediaType = MessageMediaType.file;
+      }
       return m;
     }
 
-    if (mfi.type == MessageMediaType.video.name) {
-      m.mediaType = MessageMediaType.video;
-    } else if (mfi.type == MessageMediaType.file.name) {
-      m.mediaType = MessageMediaType.file;
+    // bot message
+    if (isBot && !m.isMeSend) {
+      BotServerMessageModel? bmm;
+      try {
+        Map<String, dynamic> map = jsonDecode(m.content);
+        bmm = BotServerMessageModel.fromJson(map);
+        m.mediaType = bmm.type;
+        m.realMessage = bmm.message;
+      } catch (e) {
+        // logger.d(e, stackTrace: s);
+      }
     }
-
     return m;
   }
 

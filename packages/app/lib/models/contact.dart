@@ -23,8 +23,8 @@ class Contact extends Equatable {
   String? curve25519PkHex;
   late String npubkey;
   late int identityId;
+  String? metadata;
 
-  bool isBot = false;
   String? petname; // My note
   String? name; // fetch from friend
 
@@ -32,9 +32,6 @@ class Contact extends Equatable {
   String? picture;
   DateTime? createdAt;
   DateTime? updatedAt;
-
-  String? hisRelay; // his receive relay
-  String? myRelay; // my receive relay
 
   String get displayName {
     String? nickname = petname ?? name;

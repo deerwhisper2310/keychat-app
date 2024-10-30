@@ -316,18 +316,17 @@ class ContactService {
     contact.name = content['name'];
     contact.about = content['about'];
     contact.picture = content['picture'];
-    contact.hisRelay = content['hisRelay'];
     // contact.isFriend = true;
     contact.updatedAt = DateTime.now();
     saveContact(contact, sync: false);
   }
 
-  Future updateContact({
-    required int identityId,
-    required String pubkey,
-    String? petname,
-    String? name,
-  }) async {
+  Future updateContact(
+      {required int identityId,
+      required String pubkey,
+      String? petname,
+      String? name,
+      String? metadata}) async {
     String pubKeyHex = rust_nostr.getHexPubkeyByBech32(bech32: pubkey);
 
     var contact = await getContact(identityId, pubKeyHex);
@@ -342,24 +341,11 @@ class ContactService {
     if (petname != null) {
       contact.petname = petname;
     }
+
+    if (metadata != null) {
+      contact.metadata = metadata;
+    }
     await saveContact(contact, sync: false);
-  }
-
-  Future updateHisRelay(int id, String? relay) async {
-    Contact? contact =
-        await DBProvider.database.contacts.filter().idEqualTo(id).findFirst();
-    if (contact == null) return false;
-    contact.hisRelay = relay;
-
-    await ContactService().saveContact(contact);
-  }
-
-  Future updateMyRelay(int id, String? relay) async {
-    Contact? contact =
-        await DBProvider.database.contacts.filter().idEqualTo(id).findFirst();
-    if (contact == null) return false;
-    contact.myRelay = relay;
-    await ContactService().saveContact(contact);
   }
 
   Future updateOrCreateByRoom(Room room, String? contactName) async {

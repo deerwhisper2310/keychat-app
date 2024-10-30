@@ -7,6 +7,7 @@ class StorageKeyString {
   static String onboarding = 'onboarding';
   static String themeMode = 'themeMode';
   static String settingNotifyStatus = 'settingNotifyStatus';
+  static String notificationFCMToken = 'notificationFCMToken';
 
   static String homeSelectedTabIndex = 'homeSelectedTabIndex';
   static String dbVersion = 'dbVersion';
@@ -15,10 +16,13 @@ class StorageKeyString {
   static String autoDeleteMessageDays = "autoDeleteMessageDays";
   static String lastMessageAt = "lastMessageAt";
   static String defaultWebRTCServers = "defaultWebRTCServers";
-  static String oneTimeListenPubkeys = "oneTimeListenPubkeys";
   static String defaultFileServer = "defaultFileServer";
   static String relayMessageFeeConfig = "relayMessageFeeConfig";
   static String relayFileFeeConfig = "relayFileFeeConfig";
+
+  static String tipsAddFriends = "tipsAddFriends";
+  static String taskCreateIdentity = "taskCreateAIIdentity";
+  static String taskCreateRoom = "taskCreateRoom";
 
   static String getSignalAliceKey(String myPubkey, String bobPubkey) {
     return "aliceKey:$myPubkey-$bobPubkey";

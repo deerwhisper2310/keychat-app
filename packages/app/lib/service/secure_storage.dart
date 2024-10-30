@@ -7,14 +7,25 @@ class SecureStorage {
   // Avoid self instance
   SecureStorage._();
   static SecureStorage get instance => _instance ??= SecureStorage._();
-  static FlutterSecureStorage storage = const FlutterSecureStorage(
-      iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock));
+  static AndroidOptions _getAndroidOptions() =>
+      const AndroidOptions(encryptedSharedPreferences: true);
+  static final FlutterSecureStorage storage = FlutterSecureStorage(
+      aOptions: _getAndroidOptions(),
+      iOptions:
+          const IOSOptions(accessibility: KeychainAccessibility.first_unlock));
 
   String mnemonicKey = kReleaseMode ? 'mnemonic' : '${Config.env}:mnemonic';
   static Map<String, String> keys = {};
 
   Future writePhraseWords(String words) async {
     await storage.write(key: mnemonicKey, value: words);
+  }
+
+  Future writePhraseWordsWhenNotExist(String words) async {
+    String? exist = await getPhraseWords();
+    if (exist == null) {
+      await storage.write(key: mnemonicKey, value: words);
+    }
   }
 
   Future<String?> getPhraseWords() async {
@@ -69,6 +80,7 @@ class SecureStorage {
   Future clearAll([bool force = false]) async {
     if (force || kReleaseMode) {
       await storage.deleteAll(
+          aOptions: _getAndroidOptions(),
           iOptions: const IOSOptions(
               accessibility: KeychainAccessibility.first_unlock));
     }

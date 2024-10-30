@@ -1,4 +1,3 @@
-import 'package:app/controller/home.controller.dart';
 import 'package:app/page/components.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
@@ -7,7 +6,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
-import 'package:keychat_ecash/ecash_controller.dart';
 import '../../service/identity.service.dart';
 
 class ImportKey extends StatefulWidget {
@@ -21,7 +19,6 @@ class _ImportKey extends State<ImportKey> {
   final TextEditingController nameController = TextEditingController();
   final TextEditingController _privateKeyController = TextEditingController();
   FocusNode focusNode2 = FocusNode();
-  bool _isChecked = false;
   @override
   void dispose() {
     focusNode2.dispose();
@@ -94,22 +91,6 @@ class _ImportKey extends State<ImportKey> {
                       textSmallGray(context,
                           'Deriving private and public keys based on bitcoin bip32 and bip39.',
                           overflow: TextOverflow.clip),
-                      const SizedBox(
-                        height: 10,
-                      ),
-                      ListTile(
-                        leading: Checkbox(
-                          value: _isChecked,
-                          onChanged: (bool? value) {
-                            setState(() {
-                              _isChecked = value!;
-                            });
-                          },
-                        ),
-                        title: const Text('Warning'),
-                        subtitle: const Text(
-                            'Nostr ID can only be used on one device'),
-                      )
                     ],
                   )),
                 ),
@@ -128,28 +109,16 @@ class _ImportKey extends State<ImportKey> {
                       EasyLoading.showError('Error seed phrase format.');
                       return;
                     }
-                    if (_isChecked == false) {
-                      EasyLoading.showError(
-                          'Please confirm the warning message');
-                      return;
-                    }
                     try {
-                      bool exist =
-                          await IdentityService().checkMnemonicsExist(input);
-                      if (exist) {
-                        EasyLoading.showError(
-                            'This seed phrase already exists');
-                        return;
-                      }
                       var kc = await rust_nostr.importFromPhrase(phrase: input);
-                      var newIdentity = await IdentityService()
-                          .createIdentity(name: name, account: kc);
                       bool isFirstAccount =
-                          Get.find<HomeController>().identities.length == 1;
-                      if (isFirstAccount) {
-                        // init ecash from server
-                        Get.find<EcashController>().initIdentity(newIdentity);
-                      }
+                          await IdentityService().count() == 0;
+                      await IdentityService().createIdentity(
+                          name: name,
+                          account: kc,
+                          index: 0,
+                          isFirstAccount: isFirstAccount);
+
                       EasyLoading.showSuccess('Import successfully');
                       Get.back();
                     } catch (e, s) {

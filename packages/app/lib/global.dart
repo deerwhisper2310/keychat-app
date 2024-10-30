@@ -1,9 +1,11 @@
 library keychat.global;
 
 class KeychatGlobal {
+  static const String bot = 'Bot';
   static const String selfName = 'Note to Self';
   static const String search = 'SEARCH';
-  static const int remainReceiveKeyPerRoom = 3;
+  static const String recommendRooms = 'recommendRooms';
+  static const int remainReceiveKeyPerRoom = 2;
   static const String baseFilePath = 'file';
   static const String signalProcotolDBFile = 'signal_procotol.db';
   static const String ecashDBFile = 'ecash.db';
@@ -13,12 +15,17 @@ class KeychatGlobal {
   static const String defaultCashuMintURL = 'https://8333.space:3338/';
   // token: /api/v1/object, fee: /api/v1/info
   static const String defaultFileServer = 'wss://relay.keychat.io';
+  static const Set<String> skipFileServers = {
+    'wss://relay.damus.io',
+    'wss://nos.lol',
+    'wss://relay.primal.net'
+  };
 
   static const String defaultRelay = 'wss://relay.keychat.io';
   static const int oneTimePubkeysPoolLength = 1;
   static const int signalIdsPoolLength = 1;
   static const int oneTimePubkeysLifetime = 24; // hours
-  static const int signalIdLifetime = 24; // hours
+  static const int signalIdLifetime = 168; // hours
   static const List webrtcIceServers = [
     {'url': 'stun:stun.l.google.com:19302'},
     {'url': 'stun:stun1.l.google.com:19302'},
@@ -62,6 +69,6 @@ The addresses of both parties on the envelope can be tracked. In theory, this pr
 
 Like the postal system, Keychat requires no registration. Users just generate Nostr keys as ID.''';
 
-  static int kdfGroupPrekeyMessageCount = 2;
-  static int kdfGroupKeysExpired = 30;
+  static int kdfGroupPrekeyMessageCount = 3;
+  static int kdfGroupKeysExpired = 7;
 }

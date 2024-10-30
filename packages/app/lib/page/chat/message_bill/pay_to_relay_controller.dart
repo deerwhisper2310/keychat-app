@@ -1,20 +1,19 @@
-import 'package:app/models/message_bill.dart';
-import 'package:app/service/message.service.dart';
+import 'package:app/models/nostr_event_status.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:pull_to_refresh/pull_to_refresh.dart';
 
-class MessageBillPageController extends GetxController {
+class PayToRelayController extends GetxController {
   final int roomId;
-  MessageBillPageController(this.roomId);
-  RxList<MessageBill> bills = <MessageBill>[].obs;
+  PayToRelayController(this.roomId);
+  RxList<NostrEventStatus> bills = <NostrEventStatus>[].obs;
   late RefreshController refreshController;
   late ScrollController scrollController;
   @override
   void onInit() async {
     refreshController = RefreshController();
     scrollController = ScrollController();
-    bills.value = await MessageService().getBillByRoomId(roomId);
+    bills.value = await NostrEventStatus.getPaidEvents();
     super.onInit();
   }
 
@@ -25,14 +24,12 @@ class MessageBillPageController extends GetxController {
     super.onClose();
   }
 
-  loadMore() async {
-    int lastId = 99999999;
+  Future loadMore() async {
+    int lastId = 999999999;
     if (bills.isNotEmpty) {
       lastId = bills.last.id;
     }
-    var newBills =
-        await MessageService().getBillByRoomId(roomId, minId: lastId);
+    var newBills = await NostrEventStatus.getPaidEvents(minId: lastId);
     bills.addAll(newBills);
-    // bills.refresh();
   }
 }

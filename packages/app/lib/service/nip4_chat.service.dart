@@ -30,13 +30,14 @@ class Nip4ChatService extends BaseChatService {
   Nip4ChatService._internal();
 
   @override
-  processMessage(
+  proccessMessage(
       {required Room room,
       required NostrEventModel event,
       required KeychatMessage km,
       NostrEventModel? sourceEvent,
+      Function(String error)? failedCallback,
       String? msgKeyHash,
-      required Relay relay}) async {
+      String? fromIdPubkey}) async {
     switch (km.type) {
       case KeyChatEventKinds.dm:
         await RoomService().receiveDM(
@@ -92,8 +93,9 @@ class Nip4ChatService extends BaseChatService {
         sent: sent,
         isSystem: isSystem,
         content: message,
-        createdAt: timestampToDateTime(event.createdAt));
-    await MessageService().saveMessageModel(toSaveMsg);
+        createdAt: timestampToDateTime(event.createdAt),
+        rawEvents: [event.toJsonString()]);
+    await MessageService().saveMessageModel(toSaveMsg, room: room);
   }
 
   // Send pseudonymous messages. The messages are nested in two layers, the first layer is pseudonymous messages, and the second layer is real messages.
@@ -132,7 +134,6 @@ class Nip4ChatService extends BaseChatService {
     MsgReply? reply,
     String? realMessage,
     MessageMediaType? mediaType,
-    Function? sentCallback,
   }) async {
     Identity identity = room.getIdentity();
     return await nostrAPI.sendNip4Message(

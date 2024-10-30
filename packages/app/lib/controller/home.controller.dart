@@ -1,11 +1,15 @@
 import 'dart:async' show StreamSubscription, Timer;
+import 'dart:convert' show jsonDecode;
 
 import 'package:app/controller/setting.controller.dart';
 import 'package:app/global.dart';
 import 'package:app/page/chat/RoomUtil.dart';
+import 'package:app/service/secure_storage.dart';
 import 'package:app_badge_plus/app_badge_plus.dart';
-import 'package:flutter/foundation.dart';
+import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart' show kReleaseMode;
 import 'package:keychat_rust_ffi_plugin/api_cashu.dart' as rust_cashu;
+import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
 import 'package:app/service/notify.service.dart';
 import 'package:app/service/relay.service.dart';
@@ -20,6 +24,7 @@ import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:get/get.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:keychat_ecash/ecash_controller.dart';
+import 'package:keychat_rust_ffi_plugin/api_nostr.dart';
 
 import '../constants.dart';
 import 'package:app/models/models.dart';
@@ -55,6 +60,7 @@ class HomeController extends GetxController
   RxBool notificationStatus = false.obs;
   bool resumed = true; // is app in front
   RxBool isConnectedNetwork = true.obs;
+  RxBool addFriendTips = false.obs;
 
   //debug mode
   RxBool debugModel = false.obs;
@@ -62,6 +68,9 @@ class HomeController extends GetxController
   int debugModelClickCount = 0;
   // final Map<int, ScrollController> scrollControllers = {};
   Timer? _checkWebsocketTimer;
+
+  RxList recommendBots = [].obs;
+
   @override
   void onInit() async {
     super.onInit();
@@ -70,7 +79,9 @@ class HomeController extends GetxController
     List<Identity> mys = await loadRoomList(init: true);
 
     // Ecash Init
+    bool showNotificationDialog = false;
     if (mys.isNotEmpty) {
+      showNotificationDialog = true;
       Get.find<EcashController>().initIdentity(mys[0]);
     } else {
       Get.find<EcashController>().initWithoutIdentity();
@@ -78,35 +89,88 @@ class HomeController extends GetxController
     FlutterNativeSplash.remove(); // close splash page
     WidgetsBinding.instance.addObserver(this);
 
-    // listen network status https://pub.dev/packages/connectivity_plus
-    subscription = Connectivity()
-        .onConnectivityChanged
-        .listen((List<ConnectivityResult> result) {
-      if (result.contains(ConnectivityResult.none)) {
-        isConnectedNetwork.value = false;
-      } else {
-        // network from disconnected to connected
-        if (!isConnectedNetwork.value) {
-          EasyDebounce.debounce(
-              'isConnectedNetwork', const Duration(seconds: 1), () {
-            WebsocketService ws = Get.find<WebsocketService>();
-            ws.start();
-            if (ws.relayFileFeeModels.entries.isEmpty) {
-              RelayService().initRelayFeeInfo();
-            }
-          });
-        }
-        isConnectedNetwork.value = true;
-      }
-    });
-    NotifyService.initOnesignal().catchError((e, s) {
+    // show dot on add friends menu
+    initTips(StorageKeyString.tipsAddFriends, addFriendTips);
+
+    NotifyService.init(showNotificationDialog).catchError((e, s) {
       logger.e('initNotifycation error', error: e, stackTrace: s);
     });
-
+    // listen network status https://pub.dev/packages/connectivity_plus
+    subscription =
+        Connectivity().onConnectivityChanged.listen(networkListenHandle);
+    await removeBadge();
     try {
+      _startConnectHeartbeat();
       await RoomUtil.executeAutoDelete();
     } catch (e, s) {
       logger.e(e.toString(), stackTrace: s);
+    }
+
+    // start to create ai identity
+    // Future.delayed(const Duration(seconds: 1), () async {
+    //   await createAIIdentity(mys, KeychatGlobal.bot);
+    //   fetchBots();
+    // });
+  }
+
+  // add identity AI and add AI contacts
+  Future createAIIdentity(List<Identity> existsIdentity, String idName) async {
+    String key = '${StorageKeyString.taskCreateIdentity}:$idName';
+    if (existsIdentity.isEmpty) return;
+    int res = await Storage.getIntOrZero(key);
+    if (res == 1) return;
+    for (var identity in existsIdentity) {
+      if (identity.name == idName) return;
+    }
+    String? mnemonic = await SecureStorage.instance.getPhraseWords();
+    if (mnemonic == null) return;
+    List<int> phraseIndexes =
+        existsIdentity.map((element) => element.index).toList();
+    int unusedIndex = List.generate(10, (index) => index).firstWhere(
+      (index) => !phraseIndexes.contains(index),
+      orElse: () => -1,
+    );
+    if (unusedIndex == -1) return;
+    List<Secp256k1Account> secp256k1Accounts = await rust_nostr
+        .importFromPhraseWith(phrase: mnemonic, offset: unusedIndex, count: 1);
+
+    await IdentityService().createIdentity(
+        name: idName,
+        account: secp256k1Accounts[0],
+        index: unusedIndex,
+        isFirstAccount: false);
+    await Storage.setInt(key, 1);
+    logger.i('CreateAIIdentity Success');
+  }
+
+  Future<void> removeBadge() async {
+    if (!GetPlatform.isMobile) return;
+    try {
+      bool supportBadge = await AppBadgePlus.isSupported();
+      if (supportBadge) {
+        AppBadgePlus.updateBadge(0);
+      }
+    } catch (e) {
+      loggerNoLine.e('removeBadge: ${e.toString()}', error: e);
+    }
+  }
+
+  void networkListenHandle(List<ConnectivityResult> result) {
+    if (result.contains(ConnectivityResult.none)) {
+      isConnectedNetwork.value = false;
+    } else {
+      // network from disconnected to connected
+      if (!isConnectedNetwork.value) {
+        EasyDebounce.debounce('isConnectedNetwork', const Duration(seconds: 1),
+            () {
+          WebsocketService ws = Get.find<WebsocketService>();
+          ws.start();
+          if (ws.relayFileFeeModels.entries.isEmpty) {
+            RelayService().initRelayFeeInfo();
+          }
+        });
+      }
+      isConnectedNetwork.value = true;
     }
   }
 
@@ -211,6 +275,7 @@ class HomeController extends GetxController
 
       rooms = [
         KeychatGlobal.search,
+        KeychatGlobal.recommendRooms,
         approving,
         requesting,
         ...rooms,
@@ -252,10 +317,11 @@ class HomeController extends GetxController
     // update();
   }
 
-  Future loadIdentityRoomList(int identityId) async {
+  loadIdentityRoomList(int identityId) {
     EasyDebounce.debounce(
         'loadIdentityRoomList:$identityId', const Duration(milliseconds: 200),
         () async {
+      logger.d('Loading rooms: $identityId');
       Map<String, List<Room>> res =
           await RoomService().getRoomList(indetityId: identityId);
       List<dynamic> rooms = res['friends'] ?? [];
@@ -281,6 +347,7 @@ class HomeController extends GetxController
 
       rooms = [
         KeychatGlobal.search,
+        KeychatGlobal.recommendRooms,
         approving,
         requesting,
         ...rooms,
@@ -340,17 +407,15 @@ class HomeController extends GetxController
           }
         }
         appstates.clear();
-
+        await removeBadge();
         EasyThrottle.throttle(
             'AppLifecycleState.resumed', const Duration(seconds: 2), () {
           if (isPaused) {
             Get.find<WebsocketService>().start().then((c) async {
-              if (kReleaseMode) {
-                _startConnectHeartbeat();
-              }
+              _startConnectHeartbeat();
             });
             Utils.initLoggger(Get.find<SettingController>().appFolder);
-            NotifyService.initNofityConfig(true);
+            NotifyService.syncPubkeysToServer(true);
             return;
           }
           Get.find<WebsocketService>().checkOnlineAndConnect();
@@ -393,6 +458,76 @@ class HomeController extends GetxController
       debugModel.value = false;
       debugModelClickCount = 0;
       EasyLoading.showToast('Debug model disabled');
+    }
+  }
+
+  updateLatestMessage(Message model) {
+    int identityId = model.identityId;
+    TabData? item = tabBodyDatas[identityId];
+    if (item == null) return;
+    List<dynamic> rooms = item.rooms;
+    for (var i = 0; i < rooms.length; i++) {
+      if (rooms[i] is Room) {
+        Room room = rooms[i];
+        if (room.id == model.roomId) {
+          room.lastMessageModel = model;
+          rooms[i] = room;
+          List<Room> firendsRooms = [];
+          for (var e in rooms) {
+            if (e is Room) {
+              firendsRooms.add(e);
+            }
+          }
+
+          item.rooms = [
+            rooms[0],
+            rooms[1],
+            rooms[2],
+            rooms[3],
+            ...RoomUtil.sortRoomList(firendsRooms)
+          ];
+          tabBodyDatas[identityId] = item;
+          return;
+        }
+      }
+    }
+  }
+
+  Future initTips(String name, RxBool toSetValue) async {
+    var res = await Storage.getIntOrZero(name);
+    toSetValue.value = res == 0 ? true : false;
+  }
+
+  Future setTipsViewed(String name, RxBool toSetValue) async {
+    toSetValue.value = false;
+    await Storage.setInt(name, 1);
+  }
+
+  Future fetchBots() async {
+    String fileName =
+        kReleaseMode ? 'bots-release.json' : 'bots-development.json';
+    var list = [
+      'https://raw.githubusercontent.com/keychat-io/bot-service-ai/refs/heads/main/$fileName',
+      'https://mirror.ghproxy.com/https://raw.githubusercontent.com/keychat-io/bot-service-ai/refs/heads/main/$fileName'
+    ];
+
+    for (var url in list) {
+      try {
+        var response = await Dio().get(
+          url,
+          options: Options(
+            sendTimeout: const Duration(seconds: 5),
+            receiveTimeout: const Duration(seconds: 5),
+          ),
+        );
+        if (response.statusCode == 200) {
+          recommendBots.value = jsonDecode(response.data);
+          logger.d(recommendBots);
+          return;
+        }
+      } catch (e) {
+        logger.e('Failed to fetch bots from $url: $e');
+      }
     }
   }
 }

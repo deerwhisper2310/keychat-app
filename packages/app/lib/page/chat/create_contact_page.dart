@@ -2,6 +2,7 @@
 
 import 'package:app/page/chat/RoomUtil.dart';
 import 'package:app/page/components.dart';
+import 'package:app/service/qrscan.service.dart';
 import 'package:app/utils.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
@@ -24,6 +25,7 @@ class AddtoContactsPage extends StatefulWidget {
 class _SearchFriendsState extends State<AddtoContactsPage> {
   late TextEditingController _controller;
   late TextEditingController _helloController;
+  // bool isBot = false;
 
   @override
   void initState() {
@@ -42,10 +44,7 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(
-          centerTitle: true,
-          title: const Text("Send Friend Request"),
-        ),
+        appBar: AppBar(centerTitle: true, title: const Text("Add Contacts")),
         body: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 15.0, vertical: 20),
           child: Column(
@@ -55,8 +54,9 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
                 maxLines: 8,
                 minLines: 1,
                 controller: _controller,
+                // autofocus: true,
                 decoration: InputDecoration(
-                    labelText: 'Npub or QR Code String ...',
+                    labelText: 'QR Code or ID Key',
                     border: const OutlineInputBorder(),
                     suffixIcon: IconButton(
                       icon: const Icon(Icons.paste),
@@ -74,9 +74,7 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
                       },
                     )),
               ),
-              const SizedBox(
-                height: 20,
-              ),
+              const SizedBox(height: 10),
               TextField(
                 textInputAction: TextInputAction.done,
                 maxLines: null,
@@ -91,8 +89,7 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
                 child: FilledButton(
                   onPressed: () async {
                     String input = _controller.text.trim();
-
-                    if (input.length > 64) {
+                    if (input.length > 70) {
                       bool isBase = isBase64(input);
                       if (isBase) {
                         QRUserModel model;
@@ -104,34 +101,27 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
                           EasyLoading.showToast('Invalid Input');
                           return;
                         }
-                        await RoomUtil.processUserQRCode(model);
+                        await RoomUtil.processUserQRCode(model, true);
                       }
                       return;
                     }
+
+                    // common private chat
                     await RoomService().createRoomAndsendInvite(input,
                         greeting: _helloController.text.trim());
                   },
-                  child: const Text(
-                    'Send',
-                  ),
+                  style: ButtonStyle(
+                      minimumSize: WidgetStateProperty.all(
+                          const Size(double.infinity, 44))),
+                  child: const Text('Confirm'),
                 ),
               ),
+              const SizedBox(height: 50),
               Card(
                 child: Column(children: [
                   ListTile(
-                    leading: const Icon(CupertinoIcons.person),
-                    title: const Text('ID Pubkey'),
-                    onTap: () async {
-                      Identity identity =
-                          Get.find<HomeController>().getSelectedIdentity();
-                      Clipboard.setData(ClipboardData(text: identity.npub));
-                      EasyLoading.showToast('Copied');
-                    },
-                    trailing: const Icon(Icons.copy),
-                  ),
-                  ListTile(
                     leading: const Icon(CupertinoIcons.qrcode),
-                    title: const Text('Show My QR Code'),
+                    title: const Text('My QR Code'),
                     onTap: () async {
                       Identity identity =
                           Get.find<HomeController>().getSelectedIdentity();
@@ -139,11 +129,17 @@ class _SearchFriendsState extends State<AddtoContactsPage> {
                     },
                     trailing: const Icon(CupertinoIcons.right_chevron),
                   ),
-                  const ListTile(
-                    leading: Icon(CupertinoIcons.qrcode_viewfinder),
-                    title: Text('Scan QR Code'),
-                    onTap: handleQRScan,
-                    trailing: Icon(CupertinoIcons.right_chevron),
+                  ListTile(
+                    leading: const Icon(CupertinoIcons.qrcode_viewfinder),
+                    title: const Text('Scan QR Code'),
+                    onTap: () async {
+                      String? result =
+                          await QrScanService.instance.handleQRScan();
+                      if (result != null) {
+                        QrScanService.instance.processQRResult(result);
+                      }
+                    },
+                    trailing: const Icon(CupertinoIcons.right_chevron),
                   )
                 ]),
               )

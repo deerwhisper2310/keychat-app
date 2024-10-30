@@ -1,24 +1,22 @@
 // ignore_for_file: use_build_context_synchronously
 
-import 'dart:convert' show jsonEncode;
 import 'dart:io' show exit;
 
 import 'package:app/controller/home.controller.dart';
-import 'package:app/models/message.dart';
-
 import 'package:app/page/FileExplore.dart';
-import 'package:app/service/message.service.dart';
+import 'package:app/page/setting/QueryReceivedEvent.dart';
+import 'package:app/page/setting/UnreadMessages.dart';
+import 'package:app/service/notify.service.dart';
 import 'package:app/service/secure_storage.dart';
-
 import 'package:app/service/websocket.service.dart';
 import 'package:app/utils.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/get.dart';
-import 'package:isar/isar.dart';
+
 import 'package:settings_ui/settings_ui.dart';
 
 import '../../controller/setting.controller.dart';
@@ -49,43 +47,24 @@ class MoreSetting extends StatelessWidget {
                 SettingsSection(title: const Text('Debug Zone'), tiles: [
                   SettingsTile.navigation(
                     leading: const Icon(Icons.event),
-                    title: const Text("Received Nostr Events"),
+                    title: const Text("Failed Events"),
                     onPressed: (context) async {
                       Get.to(() => const NostrEventsPage(),
                           binding: NostrEventsBindings());
                     },
                   ),
                   SettingsTile.navigation(
-                    leading: const Icon(Icons.copy),
-                    title: const Text("Copy Unread Messages"),
+                    leading: const Icon(Icons.event),
+                    title: const Text("Query Received Event"),
                     onPressed: (context) async {
-                      List<Message> messages = await DBProvider
-                          .database.messages
-                          .filter()
-                          .isReadEqualTo(false)
-                          .findAll();
-                      List res = messages.map((e) => e.toString()).toList();
-
-                      Clipboard.setData(ClipboardData(text: jsonEncode(res)));
-                      EasyLoading.showSuccess('Copied');
+                      Get.to(() => const QueryReceivedEvent());
                     },
                   ),
                   SettingsTile.navigation(
-                    leading: const Icon(CupertinoIcons.bubble_left),
-                    title: const Text("Clear Unread Messages"),
+                    leading: const Icon(Icons.copy),
+                    title: const Text("Unread Messages"),
                     onPressed: (context) async {
-                      EasyLoading.show(status: 'Processing...');
-                      try {
-                        await MessageService().clearUnreadMessage();
-                        Get.find<HomeController>().loadRoomList();
-                        EasyLoading.showSuccess('Success');
-                      } catch (e, s) {
-                        logger.e('clear unread message',
-                            error: e, stackTrace: s);
-                        EasyLoading.showError('Failed');
-                      } finally {
-                        EasyLoading.dismiss();
-                      }
+                      Get.to(() => const UnreadMessages());
                     },
                   ),
                   if (home2controller.debugModel.value || kDebugMode)
@@ -194,10 +173,7 @@ class MoreSetting extends StatelessWidget {
           ),
           title: const Text("Reset APP", style: TextStyle(color: Colors.red)),
           onPressed: (context) {
-            showDialog<String>(
-                context: context,
-                builder: (BuildContext context) =>
-                    deleteAccount(context, true));
+            Get.dialog(deleteAccount(context, true));
           })
     ]);
   }
@@ -209,9 +185,7 @@ class MoreSetting extends StatelessWidget {
           "Please make sure you have backed up your seed phrase and contacts. This cannot be undone."),
       actions: <Widget>[
         CupertinoDialogAction(
-          child: const Text(
-            'Cancel',
-          ),
+          child: const Text('Cancel'),
           onPressed: () {
             Get.back();
           },
@@ -230,11 +204,16 @@ class MoreSetting extends StatelessWidget {
                 await Storage.clearAll();
                 await SecureStorage.instance.clearAll();
                 Storage.setInt(StorageKeyString.onboarding, 0);
-                EasyLoading.dismiss();
+                FirebaseMessaging.instance.deleteToken();
+                NotifyService.clearAll();
                 Get.offAllNamed(Routes.login);
               } catch (e, s) {
+                EasyLoading.showError(e.toString(),
+                    duration: const Duration(seconds: 2));
                 logger.e('reset all', error: e, stackTrace: s);
               } finally {
+                await Future.delayed(const Duration(seconds: 2));
+                EasyLoading.dismiss();
                 kReleaseMode && exit(0);
               }
             }),

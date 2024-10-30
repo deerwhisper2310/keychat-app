@@ -37,58 +37,48 @@ const ContactSchema = CollectionSchema(
       name: r'hashCode',
       type: IsarType.long,
     ),
-    r'hisRelay': PropertySchema(
-      id: 4,
-      name: r'hisRelay',
-      type: IsarType.string,
-    ),
     r'identityId': PropertySchema(
-      id: 5,
+      id: 4,
       name: r'identityId',
       type: IsarType.long,
     ),
-    r'isBot': PropertySchema(
-      id: 6,
-      name: r'isBot',
-      type: IsarType.bool,
-    ),
-    r'myRelay': PropertySchema(
-      id: 7,
-      name: r'myRelay',
+    r'metadata': PropertySchema(
+      id: 5,
+      name: r'metadata',
       type: IsarType.string,
     ),
     r'name': PropertySchema(
-      id: 8,
+      id: 6,
       name: r'name',
       type: IsarType.string,
     ),
     r'npubkey': PropertySchema(
-      id: 9,
+      id: 7,
       name: r'npubkey',
       type: IsarType.string,
     ),
     r'petname': PropertySchema(
-      id: 10,
+      id: 8,
       name: r'petname',
       type: IsarType.string,
     ),
     r'picture': PropertySchema(
-      id: 11,
+      id: 9,
       name: r'picture',
       type: IsarType.string,
     ),
     r'pubkey': PropertySchema(
-      id: 12,
+      id: 10,
       name: r'pubkey',
       type: IsarType.string,
     ),
     r'stringify': PropertySchema(
-      id: 13,
+      id: 11,
       name: r'stringify',
       type: IsarType.bool,
     ),
     r'updatedAt': PropertySchema(
-      id: 14,
+      id: 12,
       name: r'updatedAt',
       type: IsarType.dateTime,
     )
@@ -145,13 +135,7 @@ int _contactEstimateSize(
     }
   }
   {
-    final value = object.hisRelay;
-    if (value != null) {
-      bytesCount += 3 + value.length * 3;
-    }
-  }
-  {
-    final value = object.myRelay;
+    final value = object.metadata;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
     }
@@ -189,17 +173,15 @@ void _contactSerialize(
   writer.writeDateTime(offsets[1], object.createdAt);
   writer.writeString(offsets[2], object.curve25519PkHex);
   writer.writeLong(offsets[3], object.hashCode);
-  writer.writeString(offsets[4], object.hisRelay);
-  writer.writeLong(offsets[5], object.identityId);
-  writer.writeBool(offsets[6], object.isBot);
-  writer.writeString(offsets[7], object.myRelay);
-  writer.writeString(offsets[8], object.name);
-  writer.writeString(offsets[9], object.npubkey);
-  writer.writeString(offsets[10], object.petname);
-  writer.writeString(offsets[11], object.picture);
-  writer.writeString(offsets[12], object.pubkey);
-  writer.writeBool(offsets[13], object.stringify);
-  writer.writeDateTime(offsets[14], object.updatedAt);
+  writer.writeLong(offsets[4], object.identityId);
+  writer.writeString(offsets[5], object.metadata);
+  writer.writeString(offsets[6], object.name);
+  writer.writeString(offsets[7], object.npubkey);
+  writer.writeString(offsets[8], object.petname);
+  writer.writeString(offsets[9], object.picture);
+  writer.writeString(offsets[10], object.pubkey);
+  writer.writeBool(offsets[11], object.stringify);
+  writer.writeDateTime(offsets[12], object.updatedAt);
 }
 
 Contact _contactDeserialize(
@@ -209,21 +191,19 @@ Contact _contactDeserialize(
   Map<Type, List<int>> allOffsets,
 ) {
   final object = Contact(
-    identityId: reader.readLong(offsets[5]),
-    npubkey: reader.readString(offsets[9]),
-    pubkey: reader.readString(offsets[12]),
+    identityId: reader.readLong(offsets[4]),
+    npubkey: reader.readString(offsets[7]),
+    pubkey: reader.readString(offsets[10]),
   );
   object.about = reader.readStringOrNull(offsets[0]);
   object.createdAt = reader.readDateTimeOrNull(offsets[1]);
   object.curve25519PkHex = reader.readStringOrNull(offsets[2]);
-  object.hisRelay = reader.readStringOrNull(offsets[4]);
   object.id = id;
-  object.isBot = reader.readBool(offsets[6]);
-  object.myRelay = reader.readStringOrNull(offsets[7]);
-  object.name = reader.readStringOrNull(offsets[8]);
-  object.petname = reader.readStringOrNull(offsets[10]);
-  object.picture = reader.readStringOrNull(offsets[11]);
-  object.updatedAt = reader.readDateTimeOrNull(offsets[14]);
+  object.metadata = reader.readStringOrNull(offsets[5]);
+  object.name = reader.readStringOrNull(offsets[6]);
+  object.petname = reader.readStringOrNull(offsets[8]);
+  object.picture = reader.readStringOrNull(offsets[9]);
+  object.updatedAt = reader.readDateTimeOrNull(offsets[12]);
   return object;
 }
 
@@ -243,26 +223,22 @@ P _contactDeserializeProp<P>(
     case 3:
       return (reader.readLong(offset)) as P;
     case 4:
-      return (reader.readStringOrNull(offset)) as P;
-    case 5:
       return (reader.readLong(offset)) as P;
-    case 6:
-      return (reader.readBool(offset)) as P;
-    case 7:
+    case 5:
       return (reader.readStringOrNull(offset)) as P;
+    case 6:
+      return (reader.readStringOrNull(offset)) as P;
+    case 7:
+      return (reader.readString(offset)) as P;
     case 8:
       return (reader.readStringOrNull(offset)) as P;
     case 9:
-      return (reader.readString(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 10:
-      return (reader.readStringOrNull(offset)) as P;
-    case 11:
-      return (reader.readStringOrNull(offset)) as P;
-    case 12:
       return (reader.readString(offset)) as P;
-    case 13:
+    case 11:
       return (reader.readBoolOrNull(offset)) as P;
-    case 14:
+    case 12:
       return (reader.readDateTimeOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -1007,152 +983,6 @@ extension ContactQueryFilter
     });
   }
 
-  QueryBuilder<Contact, Contact, QAfterFilterCondition> hisRelayIsNull() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(const FilterCondition.isNull(
-        property: r'hisRelay',
-      ));
-    });
-  }
-
-  QueryBuilder<Contact, Contact, QAfterFilterCondition> hisRelayIsNotNull() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(const FilterCondition.isNotNull(
-        property: r'hisRelay',
-      ));
-    });
-  }
-
-  QueryBuilder<Contact, Contact, QAfterFilterCondition> hisRelayEqualTo(
-    String? value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'hisRelay',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Contact, Contact, QAfterFilterCondition> hisRelayGreaterThan(
-    String? value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'hisRelay',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Contact, Contact, QAfterFilterCondition> hisRelayLessThan(
-    String? value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'hisRelay',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Contact, Contact, QAfterFilterCondition> hisRelayBetween(
-    String? lower,
-    String? upper, {
-    bool includeLower = true,
-    bool includeUpper = true,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'hisRelay',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Contact, Contact, QAfterFilterCondition> hisRelayStartsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.startsWith(
-        property: r'hisRelay',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Contact, Contact, QAfterFilterCondition> hisRelayEndsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.endsWith(
-        property: r'hisRelay',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Contact, Contact, QAfterFilterCondition> hisRelayContains(
-      String value,
-      {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.contains(
-        property: r'hisRelay',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Contact, Contact, QAfterFilterCondition> hisRelayMatches(
-      String pattern,
-      {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.matches(
-        property: r'hisRelay',
-        wildcard: pattern,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<Contact, Contact, QAfterFilterCondition> hisRelayIsEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'hisRelay',
-        value: '',
-      ));
-    });
-  }
-
-  QueryBuilder<Contact, Contact, QAfterFilterCondition> hisRelayIsNotEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        property: r'hisRelay',
-        value: '',
-      ));
-    });
-  }
-
   QueryBuilder<Contact, Contact, QAfterFilterCondition> idEqualTo(Id value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
@@ -1258,46 +1088,36 @@ extension ContactQueryFilter
     });
   }
 
-  QueryBuilder<Contact, Contact, QAfterFilterCondition> isBotEqualTo(
-      bool value) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'isBot',
-        value: value,
-      ));
-    });
-  }
-
-  QueryBuilder<Contact, Contact, QAfterFilterCondition> myRelayIsNull() {
+  QueryBuilder<Contact, Contact, QAfterFilterCondition> metadataIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNull(
-        property: r'myRelay',
+        property: r'metadata',
       ));
     });
   }
 
-  QueryBuilder<Contact, Contact, QAfterFilterCondition> myRelayIsNotNull() {
+  QueryBuilder<Contact, Contact, QAfterFilterCondition> metadataIsNotNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNotNull(
-        property: r'myRelay',
+        property: r'metadata',
       ));
     });
   }
 
-  QueryBuilder<Contact, Contact, QAfterFilterCondition> myRelayEqualTo(
+  QueryBuilder<Contact, Contact, QAfterFilterCondition> metadataEqualTo(
     String? value, {
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'myRelay',
+        property: r'metadata',
         value: value,
         caseSensitive: caseSensitive,
       ));
     });
   }
 
-  QueryBuilder<Contact, Contact, QAfterFilterCondition> myRelayGreaterThan(
+  QueryBuilder<Contact, Contact, QAfterFilterCondition> metadataGreaterThan(
     String? value, {
     bool include = false,
     bool caseSensitive = true,
@@ -1305,14 +1125,14 @@ extension ContactQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.greaterThan(
         include: include,
-        property: r'myRelay',
+        property: r'metadata',
         value: value,
         caseSensitive: caseSensitive,
       ));
     });
   }
 
-  QueryBuilder<Contact, Contact, QAfterFilterCondition> myRelayLessThan(
+  QueryBuilder<Contact, Contact, QAfterFilterCondition> metadataLessThan(
     String? value, {
     bool include = false,
     bool caseSensitive = true,
@@ -1320,14 +1140,14 @@ extension ContactQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.lessThan(
         include: include,
-        property: r'myRelay',
+        property: r'metadata',
         value: value,
         caseSensitive: caseSensitive,
       ));
     });
   }
 
-  QueryBuilder<Contact, Contact, QAfterFilterCondition> myRelayBetween(
+  QueryBuilder<Contact, Contact, QAfterFilterCondition> metadataBetween(
     String? lower,
     String? upper, {
     bool includeLower = true,
@@ -1336,7 +1156,7 @@ extension ContactQueryFilter
   }) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.between(
-        property: r'myRelay',
+        property: r'metadata',
         lower: lower,
         includeLower: includeLower,
         upper: upper,
@@ -1346,69 +1166,69 @@ extension ContactQueryFilter
     });
   }
 
-  QueryBuilder<Contact, Contact, QAfterFilterCondition> myRelayStartsWith(
+  QueryBuilder<Contact, Contact, QAfterFilterCondition> metadataStartsWith(
     String value, {
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.startsWith(
-        property: r'myRelay',
+        property: r'metadata',
         value: value,
         caseSensitive: caseSensitive,
       ));
     });
   }
 
-  QueryBuilder<Contact, Contact, QAfterFilterCondition> myRelayEndsWith(
+  QueryBuilder<Contact, Contact, QAfterFilterCondition> metadataEndsWith(
     String value, {
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.endsWith(
-        property: r'myRelay',
+        property: r'metadata',
         value: value,
         caseSensitive: caseSensitive,
       ));
     });
   }
 
-  QueryBuilder<Contact, Contact, QAfterFilterCondition> myRelayContains(
+  QueryBuilder<Contact, Contact, QAfterFilterCondition> metadataContains(
       String value,
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.contains(
-        property: r'myRelay',
+        property: r'metadata',
         value: value,
         caseSensitive: caseSensitive,
       ));
     });
   }
 
-  QueryBuilder<Contact, Contact, QAfterFilterCondition> myRelayMatches(
+  QueryBuilder<Contact, Contact, QAfterFilterCondition> metadataMatches(
       String pattern,
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.matches(
-        property: r'myRelay',
+        property: r'metadata',
         wildcard: pattern,
         caseSensitive: caseSensitive,
       ));
     });
   }
 
-  QueryBuilder<Contact, Contact, QAfterFilterCondition> myRelayIsEmpty() {
+  QueryBuilder<Contact, Contact, QAfterFilterCondition> metadataIsEmpty() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'myRelay',
+        property: r'metadata',
         value: '',
       ));
     });
   }
 
-  QueryBuilder<Contact, Contact, QAfterFilterCondition> myRelayIsNotEmpty() {
+  QueryBuilder<Contact, Contact, QAfterFilterCondition> metadataIsNotEmpty() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.greaterThan(
-        property: r'myRelay',
+        property: r'metadata',
         value: '',
       ));
     });
@@ -2263,18 +2083,6 @@ extension ContactQuerySortBy on QueryBuilder<Contact, Contact, QSortBy> {
     });
   }
 
-  QueryBuilder<Contact, Contact, QAfterSortBy> sortByHisRelay() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'hisRelay', Sort.asc);
-    });
-  }
-
-  QueryBuilder<Contact, Contact, QAfterSortBy> sortByHisRelayDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'hisRelay', Sort.desc);
-    });
-  }
-
   QueryBuilder<Contact, Contact, QAfterSortBy> sortByIdentityId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'identityId', Sort.asc);
@@ -2287,27 +2095,15 @@ extension ContactQuerySortBy on QueryBuilder<Contact, Contact, QSortBy> {
     });
   }
 
-  QueryBuilder<Contact, Contact, QAfterSortBy> sortByIsBot() {
+  QueryBuilder<Contact, Contact, QAfterSortBy> sortByMetadata() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'isBot', Sort.asc);
+      return query.addSortBy(r'metadata', Sort.asc);
     });
   }
 
-  QueryBuilder<Contact, Contact, QAfterSortBy> sortByIsBotDesc() {
+  QueryBuilder<Contact, Contact, QAfterSortBy> sortByMetadataDesc() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'isBot', Sort.desc);
-    });
-  }
-
-  QueryBuilder<Contact, Contact, QAfterSortBy> sortByMyRelay() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'myRelay', Sort.asc);
-    });
-  }
-
-  QueryBuilder<Contact, Contact, QAfterSortBy> sortByMyRelayDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'myRelay', Sort.desc);
+      return query.addSortBy(r'metadata', Sort.desc);
     });
   }
 
@@ -2446,18 +2242,6 @@ extension ContactQuerySortThenBy
     });
   }
 
-  QueryBuilder<Contact, Contact, QAfterSortBy> thenByHisRelay() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'hisRelay', Sort.asc);
-    });
-  }
-
-  QueryBuilder<Contact, Contact, QAfterSortBy> thenByHisRelayDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'hisRelay', Sort.desc);
-    });
-  }
-
   QueryBuilder<Contact, Contact, QAfterSortBy> thenById() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'id', Sort.asc);
@@ -2482,27 +2266,15 @@ extension ContactQuerySortThenBy
     });
   }
 
-  QueryBuilder<Contact, Contact, QAfterSortBy> thenByIsBot() {
+  QueryBuilder<Contact, Contact, QAfterSortBy> thenByMetadata() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'isBot', Sort.asc);
+      return query.addSortBy(r'metadata', Sort.asc);
     });
   }
 
-  QueryBuilder<Contact, Contact, QAfterSortBy> thenByIsBotDesc() {
+  QueryBuilder<Contact, Contact, QAfterSortBy> thenByMetadataDesc() {
     return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'isBot', Sort.desc);
-    });
-  }
-
-  QueryBuilder<Contact, Contact, QAfterSortBy> thenByMyRelay() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'myRelay', Sort.asc);
-    });
-  }
-
-  QueryBuilder<Contact, Contact, QAfterSortBy> thenByMyRelayDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'myRelay', Sort.desc);
+      return query.addSortBy(r'metadata', Sort.desc);
     });
   }
 
@@ -2620,29 +2392,16 @@ extension ContactQueryWhereDistinct
     });
   }
 
-  QueryBuilder<Contact, Contact, QDistinct> distinctByHisRelay(
-      {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(r'hisRelay', caseSensitive: caseSensitive);
-    });
-  }
-
   QueryBuilder<Contact, Contact, QDistinct> distinctByIdentityId() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'identityId');
     });
   }
 
-  QueryBuilder<Contact, Contact, QDistinct> distinctByIsBot() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(r'isBot');
-    });
-  }
-
-  QueryBuilder<Contact, Contact, QDistinct> distinctByMyRelay(
+  QueryBuilder<Contact, Contact, QDistinct> distinctByMetadata(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(r'myRelay', caseSensitive: caseSensitive);
+      return query.addDistinctBy(r'metadata', caseSensitive: caseSensitive);
     });
   }
 
@@ -2726,27 +2485,15 @@ extension ContactQueryProperty
     });
   }
 
-  QueryBuilder<Contact, String?, QQueryOperations> hisRelayProperty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addPropertyName(r'hisRelay');
-    });
-  }
-
   QueryBuilder<Contact, int, QQueryOperations> identityIdProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'identityId');
     });
   }
 
-  QueryBuilder<Contact, bool, QQueryOperations> isBotProperty() {
+  QueryBuilder<Contact, String?, QQueryOperations> metadataProperty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addPropertyName(r'isBot');
-    });
-  }
-
-  QueryBuilder<Contact, String?, QQueryOperations> myRelayProperty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addPropertyName(r'myRelay');
+      return query.addPropertyName(r'metadata');
     });
   }
 

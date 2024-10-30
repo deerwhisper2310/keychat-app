@@ -1,6 +1,6 @@
 import 'package:app/app.dart';
 import 'package:app/page/chat/RoomUtil.dart';
-import 'package:app/page/chat/message_bill/message_bill_page.dart';
+import 'package:app/page/chat/message_bill/pay_to_relay_page.dart';
 import 'package:keychat_rust_ffi_plugin/api_nostr.dart' as rust_nostr;
 
 import 'package:app/service/contact.service.dart';
@@ -122,22 +122,24 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
 
   receiveInPostOffice() {
     return SettingsSection(
-      title: const Text('Message Relay'),
+      title: const Text('Message Relays'),
       tiles: [
         SettingsTile(
-            leading: const Icon(
-              CupertinoIcons.up_arrow,
-            ),
+            leading: const Icon(CupertinoIcons.up_arrow),
             title: const Text('SendTo'),
-            value: Text(chatController.roomObs.value.groupRelay ??
-                KeychatGlobal.defaultRelay)),
+            value: Flexible(
+                child: Text(
+                    chatController.roomObs.value.sendingRelays.isNotEmpty
+                        ? chatController.roomObs.value.sendingRelays.join(',')
+                        : 'All'))),
         SettingsTile(
-            leading: const Icon(
-              CupertinoIcons.down_arrow,
-            ),
+            leading: const Icon(CupertinoIcons.down_arrow),
             title: const Text('ReceiveFrom'),
-            value: Text(chatController.roomObs.value.groupRelay ??
-                KeychatGlobal.defaultRelay)),
+            value: Flexible(
+                child: Text(
+                    chatController.roomObs.value.receivingRelays.isNotEmpty
+                        ? chatController.roomObs.value.receivingRelays.join(',')
+                        : 'All'))),
       ],
     );
   }
@@ -150,11 +152,19 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
           leading: const Icon(
             CupertinoIcons.bitcoin,
           ),
-          title: const Text('Ecash Bills'),
+          title: const Text('Pay to Relay'),
           onPressed: (context) async {
-            Get.to(() => MessageBillPage(roomId: room.id));
+            Get.to(() => PayToRelayPage(roomId: room.id));
           },
         ),
+        // if (chatController.roomObs.value.type == RoomType.bot)
+        //   SettingsTile.navigation(
+        //     leading: const Icon(CupertinoIcons.bitcoin),
+        //     title: const Text('Pay to Chat'),
+        //     onPressed: (context) async {
+        //       Get.to(() => PayToRelayPage(roomId: room.id));
+        //     },
+        //   ),
       ],
     );
   }
@@ -351,7 +361,9 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
   }
 
   generalSection() {
-    String pubkey = chatController.roomObs.value.toMainPubkey;
+    String pubkey = chatController.roomObs.value.isSendAllGroup
+        ? chatController.roomObs.value.toMainPubkey
+        : chatController.roomObs.value.mykey.value!.pubkey;
     return SettingsSection(tiles: [
       SettingsTile(
           title: const Text("Group ID"),
@@ -384,9 +396,7 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
       SettingsTile.navigation(
         title: const Text("My Alias in Group"),
         leading: const Icon(CupertinoIcons.person),
-        value: textP(
-          chatController.meMember.value.name,
-        ),
+        value: textP(chatController.meMember.value.name),
         onPressed: (context) async {
           if (chatController.room.isSendAllGroup) {
             _showMyNameDialog();
@@ -509,9 +519,7 @@ class _GroupChatSettingPageState extends State<GroupChatSettingPage> {
       content: const Text('Are you sure to delete the group?'),
       actions: <Widget>[
         CupertinoDialogAction(
-          child: const Text(
-            'Cancel',
-          ),
+          child: const Text('Cancel'),
           onPressed: () {
             Get.back();
           },

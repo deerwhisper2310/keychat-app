@@ -33,7 +33,7 @@ class RelayService {
 
     Relay relay = await RelayService().getOrPutRelay(url);
     ws.addChannel(relay);
-    NotifyService.initNofityConfig(); // sub new relay
+    NotifyService.syncPubkeysToServer(); // sub new relay
     RelayService().initRelayFeeInfo([relay]);
   }
 
@@ -367,9 +367,7 @@ class RelayService {
     }
     final dio = Dio();
     dio.options = BaseOptions(
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: {'Content-Type': 'application/json'},
         connectTimeout: const Duration(seconds: 6),
         receiveTimeout: const Duration(seconds: 6),
         sendTimeout: const Duration(seconds: 6));
@@ -379,17 +377,18 @@ class RelayService {
       if (response.statusCode == 200 && response.data is Map) {
         return response.data;
       } else {
-        logger.e(
+        loggerNoLine.e(
             'Failed to fetch file server info. Error: ${response.statusCode}');
       }
     } catch (e) {
-      logger.e('Failed to fetch file server info', error: e);
+      loggerNoLine.e('Failed to fetch file server info', error: e);
     }
 
     return null;
   }
 
   Future<RelayFileFee?> initRelayFileFeeModel(String url) async {
+    if (KeychatGlobal.skipFileServers.contains(url)) return null;
     try {
       Map? map = await _fetchFileUploadConfig(url);
       logger.d('fetchAndSetFileUploadConfig, $url: $map');
@@ -402,8 +401,8 @@ class RelayService {
         rufc.expired = map['expired'] ?? '-';
         return rufc;
       }
-    } catch (e, s) {
-      logger.d(e.toString(), error: e, stackTrace: s);
+    } catch (e) {
+      loggerNoLine.e(e.toString());
     }
     return null;
   }

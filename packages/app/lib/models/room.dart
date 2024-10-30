@@ -1,9 +1,13 @@
+import 'dart:convert';
+
+import 'package:app/bot/bot_server_message_model.dart';
 import 'package:app/controller/home.controller.dart';
 import 'package:app/global.dart';
 import 'package:app/models/models.dart';
 
 import 'package:app/models/signal_id.dart';
 import 'package:app/service/chatx.service.dart';
+import 'package:app/service/message.service.dart';
 import 'package:app/service/room.service.dart';
 import 'package:app/service/signalId.service.dart';
 import 'package:app/utils.dart';
@@ -16,11 +20,7 @@ import 'db_provider.dart';
 
 part 'room.g.dart';
 
-enum RoomType {
-  common,
-  private,
-  group,
-}
+enum RoomType { common, private, group, bot }
 
 enum GroupType { shareKey, sendAll, kdf }
 
@@ -48,7 +48,6 @@ enum RoomStatus {
   'isShareKeyGroup',
   'isKDFGroup',
   'parentRoom',
-  'messageType',
   'keyPair'
 })
 // ignore: must_be_immutable
@@ -94,7 +93,7 @@ class Room extends Equatable {
 
   // group info
   String? name;
-  String? groupRelay;
+  String? description;
   bool isMute = false; // mute notification
 
   bool signalDecodeError = false; // if decode error set: true
@@ -106,6 +105,16 @@ class Room extends Equatable {
 
   String? onetimekey;
   String? sharedSignalID; // a shared virtual signal id for group
+
+  // bot
+  String? botInfo; // json map string, fetch from relay or hello message
+  String? botLocalConfig; // json map string, user config in local
+  int botInfoUpdatedAt = 0; // bot metadata update time
+
+  // relays
+  List<String> receivingRelays = [];
+  List<String> sendingRelays = [];
+
   Room(
       {required this.toMainPubkey,
       required this.npub,
@@ -120,11 +129,6 @@ class Room extends Equatable {
   bool get isShareKeyGroup =>
       groupType == GroupType.shareKey && type == RoomType.group;
   bool get isKDFGroup => groupType == GroupType.kdf && type == RoomType.group;
-
-  MessageType get messageType =>
-      type == RoomType.common && encryptMode == EncryptMode.nip04
-          ? MessageType.nip04
-          : MessageType.signal;
 
   @override
   List<Object?> get props => [
@@ -145,7 +149,7 @@ class Room extends Equatable {
     if (signalIdPubkey == null) {
       return await chatxService.getKeyPairByIdentity(getIdentity());
     }
-    var exist = chatxService.keypairs[signalIdPubkey];
+    var exist = chatxService.initedKeypairs[signalIdPubkey];
     if (exist != null) return exist;
     SignalId? si = getMySignalId();
     if (si != null) {
@@ -366,26 +370,32 @@ class Room extends Equatable {
           .roomIdEqualTo(id)
           .idPubkeyEqualTo(rm.idPubkey)
           .findFirst();
-      if (exist != null) {
-        if (exist.updatedAt != null && rm.updatedAt != null) {
-          if (exist.updatedAt!.isAfter(rm.updatedAt!)) {
-            logger.d('Ingore by updatedAt: ${exist.idPubkey}');
-            continue;
-          }
-        }
-        exist.name = rm.name;
-        exist.isAdmin = rm.isAdmin;
-        exist.status = rm.status;
-        if (rm.createdAt != null) {
-          exist.createdAt = rm.createdAt;
-        }
-        if (rm.updatedAt != null) {
-          exist.updatedAt = rm.updatedAt;
-        }
-        await database.roomMembers.put(exist);
-      } else {
+      if (exist == null) {
+        rm.messageCount = 0;
         await database.roomMembers.put(rm);
+        continue;
       }
+
+      exist.name = rm.name;
+      exist.messageCount = 0;
+      exist.isAdmin = rm.isAdmin;
+      exist.status = rm.status;
+      if (rm.createdAt != null) {
+        exist.createdAt = rm.createdAt;
+      }
+      if (rm.updatedAt != null) {
+        exist.updatedAt = rm.updatedAt;
+      }
+      await database.roomMembers.put(exist);
+    }
+  }
+
+  Future<void> setMemberInvited(RoomMember rm, String? name) async {
+    if (rm.status != UserStatusType.invited) {
+      rm.status = UserStatusType.invited;
+      if (name != null) rm.name = name;
+      await updateMember(rm);
+      RoomService.getController(id)?.resetMembers();
     }
   }
 
@@ -438,7 +448,7 @@ class Room extends Equatable {
     }
 
     if (contact == null) {
-      return getPublicKeyDisplay(npub);
+      return name ?? getPublicKeyDisplay(npub);
     }
     return contact!.displayName;
   }
@@ -494,11 +504,19 @@ class Room extends Equatable {
     return getMemberByNostrPubkey(pubkey);
   }
 
-  Future incrMessageCountForMemeber(RoomMember meMember) async {
+  Future incrMessageCountForMember(RoomMember member) async {
+    bool changeMember = false;
+    if (member.status != UserStatusType.invited) {
+      member.status = UserStatusType.invited;
+      changeMember = true;
+    }
     await DBProvider.database.writeTxn(() async {
-      meMember.messageCount++;
-      await DBProvider.database.roomMembers.put(meMember);
+      member.messageCount++;
+      await DBProvider.database.roomMembers.put(member);
     });
+    if (changeMember) {
+      RoomService.getController(id)?.resetMembers();
+    }
   }
 
   // clear keys. if receive all member's prekey message
@@ -509,6 +527,10 @@ class Room extends Equatable {
         .filter()
         .roomIdEqualTo(id)
         .messageCountLessThan(KeychatGlobal.kdfGroupPrekeyMessageCount + 1)
+        .group((q) => q
+            .statusEqualTo(UserStatusType.invited)
+            .or()
+            .statusEqualTo(UserStatusType.inviting))
         .count();
     SignalId? signalId =
         await SignalIdService.instance.getSignalIdByPubkey(sharedSignalID);
@@ -522,5 +544,25 @@ class Room extends Equatable {
     logger.i('clean signal keys: $toMainPubkey');
     signalId.keys = "";
     await SignalIdService.instance.updateSignalId(signalId);
+    MessageService()
+        .saveSystemMessage(this, 'Clear shared signal-id-keys successfully');
+  }
+
+  String getDebugInfo(String error) {
+    return '''$error
+Room: $id, ${getRoomName()} $toMainPubkey, $identityId, $groupType''';
+  }
+
+  BotMessageData? getBotMessagePriceModel() {
+    if (botLocalConfig == null) return null;
+    BotMessageData? bmd;
+    try {
+      Map config = jsonDecode(botLocalConfig!);
+      bmd = BotMessageData.fromJson(
+          config[MessageMediaType.botPricePerMessageRequest.name]);
+    } catch (e) {
+      return null;
+    }
+    return bmd;
   }
 }

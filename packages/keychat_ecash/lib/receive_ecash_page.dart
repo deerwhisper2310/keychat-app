@@ -1,3 +1,4 @@
+import 'package:app/service/qrscan.service.dart';
 import 'package:app/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -31,7 +32,8 @@ class _ReceiveEcashState extends State<ReceiveEcash> {
             decodedModel = res;
           });
         } catch (e) {
-          logger.d(e.toString());
+          String msg = Utils.getErrorMessage(e);
+          EasyLoading.showError(msg);
         }
       }
     });
@@ -98,7 +100,13 @@ class _ReceiveEcashState extends State<ReceiveEcash> {
                       height: 30,
                     ),
                     OutlinedButton.icon(
-                        onPressed: handleQRScan,
+                        onPressed: () async {
+                          String? result =
+                              await QrScanService.instance.handleQRScan();
+                          if (result != null) {
+                            QrScanService.instance.processQRResult(result);
+                          }
+                        },
                         icon: const Icon(Icons.qr_code_scanner),
                         label: const Text('Scan'))
                   ],
@@ -108,9 +116,7 @@ class _ReceiveEcashState extends State<ReceiveEcash> {
                 style: ButtonStyle(
                     minimumSize: WidgetStateProperty.all(
                         const Size(double.infinity, 44))),
-                child: const Text(
-                  'Receive',
-                ),
+                child: const Text('Receive'),
                 onPressed: () async {
                   String encodedToken = receiveTextController.text.trim();
                   if (encodedToken.isEmpty) {

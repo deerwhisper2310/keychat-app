@@ -4,7 +4,7 @@ description: keychat
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: "none" # Remove this line if you wish to publish to pub.dev
 
-version: 1.18.2+4226
+version: 1.20.2+4260
 
 environment:
   sdk: ">=3.4.3 <4.0.0"
@@ -13,7 +13,7 @@ environment:
 platforms:
   android:
   ios:
-  # macos:
+  macos:
   # chrome:
 
 dependencies:
@@ -35,11 +35,9 @@ dependencies:
   share_plus: ^9.0.0
   flutter_linkify: ^6.0.0
   permission_handler: ^11.3.1
-  mobile_scanner: ^5.1.1
   qr_flutter: "^4.1.0"
   url_launcher: ^6.2.3
   settings_ui: ^2.0.2
-  onesignal_flutter: ^5.2.2
   search_page: ^2.3.0
   app_settings: ^5.1.1
   flutter_native_splash: ^2.4.1
@@ -69,8 +67,8 @@ dependencies:
   flutter_floating: ^1.0.8
   image_compression_flutter: ^1.0.4
   video_player: ^2.9.1
-  video_compress: ^3.1.2
-  flutter_markdown: ^0.6.18+3
+  video_compress: ^3.1.3
+  flutter_markdown: ^0.7.3+2
   scroll_to_index: ^3.0.1
   connectivity_plus: ^6.0.3
   file_selector: ^1.0.3
@@ -79,11 +77,16 @@ dependencies:
   linkify: ^5.0.0
   flutter_svg: ^2.0.10+1
   crypto: ^3.0.3
-  sentry_flutter: ^8.4.0
-  app_badge_plus: ^1.1.1
   web_socket_channel: ^3.0.1
+  app_badge_plus: ^1.1.5
   flutter_secure_storage: ^9.2.2
   avatar_plus: ^0.0.4
+  firebase_core: ^3.4.0
+  firebase_messaging: ^15.1.0
+  barcode_scan2: ^4.3.3
+  freezed_annotation: ^2.4.4
+  firebase_crashlytics: ^4.1.0
+  firebase_analytics: ^11.3.0
 
 dev_dependencies:
   flutter_test:
